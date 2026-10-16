@@ -1,0 +1,2 @@
+# Unified patches use a single-space marker for empty context lines.
+patches/*.patch whitespace=-blank-at-eol

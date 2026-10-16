@@ -1,0 +1,1393 @@
+# Freedom Unbound launcher — Português (Brasil). host.txt format, UTF-8 without BOM.
+# One id=text per line; # starts a comment; \n is a line break, \\ a backslash. {0}, {1}... are filled in by the program.
+# Translated 2026-10-14 for Luis Eduardo (FU pt-BR localization). Rules: Capcom official pt-BR wins; capitalization follows English; short button text.
+# English and Português (Brasil) stay in their own language on purpose.
+
+# launcher_home.cpp:49, label
+launcher.home.none_the_game_cannot_read=Nenhuma; o jogo não consegue ler o disco
+# launcher_home.cpp:49, label
+launcher.home.the_copy_in_the_data=(a cópia na pasta de dados)
+# launcher_home.cpp:49, label
+launcher.home.used_where_it_is=(usada onde está)
+# launcher_home.cpp, tooltip of the UK flag under the update button (switches to English)
+launcher.lang.en=English
+# launcher_home.cpp, tooltip of the Brazilian flag (switches to Português (Brasil))
+launcher.lang.pt_br=Português (Brasil)
+# launcher_home.cpp:45, label
+launcher.home.none=Nenhuma
+# launcher_home.cpp:74, label
+launcher.home.data_folder=Pasta de dados
+# launcher_home.cpp:75, label
+launcher.home.disc_image=Imagem do disco
+# launcher_home.cpp:76, label
+launcher.home.saves_folder=Pasta de saves
+# launcher_home.cpp:133, paragraph
+launcher.home.welcome_back=BEM-VINDO DE VOLTA
+# launcher_home.cpp:152, paragraph
+launcher.home.launcher=LAUNCHER
+# launcher_home.cpp:169, label
+launcher.home.settings=Configurações
+# launcher_home.cpp:169, label
+launcher.home.video_audio_and_controls=Vídeo, áudio e controles.
+# launcher_home.cpp:171, label
+launcher.home.mods=Mods
+# launcher_home.cpp:171, label
+launcher.home.manage_optional_content=Gerencie conteúdo opcional.
+# launcher_home.cpp:173, label
+launcher.home.cheats=Trapaças
+# launcher_home.cpp:173, help text
+launcher.home.health_stamina_and_damage_controls=Controles de vida, vigor e dano para testes.
+# launcher_home.cpp:174, label
+launcher.home.saves=Saves
+# launcher_home.cpp:174, label
+launcher.home.manage_and_back_up_your=Gerencie e faça backup dos seus saves.
+# launcher_home.cpp:175, label
+launcher.home.game_data=Dados do jogo
+# launcher_home.cpp:175, label
+launcher.home.manage_the_installed_game_data=Gerencie os dados do jogo instalados.
+# launcher_home.cpp:176, label
+launcher.home.screenshots=Capturas de tela
+# launcher_home.cpp:176, label
+launcher.home.open_the_folder_f12_saves=Abre a pasta onde o F12 salva as capturas.
+# launcher_home.cpp:178, label
+launcher.home.whats_new=Novidades
+# launcher_home.cpp:178, label
+launcher.home.what_changed_in_this_version=O que mudou nesta versão.
+# launcher_home.cpp:180, label
+launcher.home.report_a_bug=Relatar um bug
+# launcher_home.cpp:181, help text
+launcher.home.zip_your_logs_settings_and=Compacta seus logs, configurações e lista de mods para um relatório de bug. Os saves nunca são incluídos.
+# launcher_home.cpp:182, label
+launcher.home.quit=Sair
+# launcher_home.cpp:182, label
+launcher.home.close_the_launcher=Fecha o launcher.
+# launcher_home.cpp:212, button
+launcher.home.play=Jogar
+# launcher_home.cpp:221, footer help
+launcher.home.start_your_adventure=Comece sua aventura.
+# launcher_home.cpp:226, footer control hint
+launcher.home.select=Selecionar
+# launcher_home.cpp:261, button row
+launcher.home.back=Voltar
+# launcher_home.cpp:261, button row
+launcher.home.back_to_the_home_screen=Volta à tela inicial.
+# launcher_home.cpp:296, button row
+launcher.home.set_up_game_data_again=Reconfigurar dados do jogo
+# launcher_home.cpp:298, help text
+launcher.home.choose_the_disc_image_again=Escolha a imagem do disco de novo, por exemplo depois de movê-la. Seus saves e configurações continuam como estão.
+# launcher_home.cpp:304, button row
+launcher.home.open_the_data_folder=Abrir a pasta de dados
+# launcher_home.cpp:304, button row
+launcher.home.show_the_data_folder_in=Mostra a pasta de dados no gerenciador de arquivos.
+# menu.cpp, row note: {0} is the environment variable that locks this setting
+launcher.settings.set_by=Definido por {0}
+# menu.cpp:262, button row
+launcher.video.fill=Preencher
+# menu.cpp:262, button row
+launcher.video.coming_soon=Em breve
+# menu.cpp:262, help text
+launcher.video.fill_will_widen_the_games=Preencher vai alargar a visão do jogo para o formato da janela quando a projeção do jogo estiver conectada. Até lá, usa Original.
+# menu.cpp Video, Frame rate help: {0} is the game's own rate (30)
+launcher.video.frame_rate_help=Quadros entre os {0} por segundo do jogo, suavizando o movimento. Diminui sozinho em vez de deixar o jogo lento.
+# menu.cpp Video, after the Frame rate value: {0} is the rate reached now
+launcher.video.running_at=(rodando a {0})
+# menu.cpp Video, help: {0} is the project name
+launcher.video.restore_defaults_help=Todas as configurações desta página voltam ao padrão do {0}.
+# menu.cpp:394, button row
+launcher.video.restore_video_defaults=Restaurar padrões de vídeo
+# menu.cpp Controls, remap note: {0} key or button, {1} control it left, {2} control it is on now
+launcher.controls.binding_moved={0} estava em {1}; agora está só em {2}.
+# menu.cpp Controls, help: {0} is the project name
+launcher.controls.restore_defaults_help=Todas as configurações de controle, teclado, mouse, toque e nome voltam ao padrão do {0}.
+# menu.cpp:845, button row
+launcher.controls.restore_control_defaults=Restaurar padrões de controle
+# menu.cpp Network status: {0} is the attempt number
+launcher.network.reconnecting=Reconectando, tentativa {0}
+# menu.cpp Network status: {0} is the group
+launcher.network.joining=Entrando em {0}…
+# menu.cpp Network: one player
+launcher.network.players_one={0} jogador
+# menu.cpp Network: player count
+launcher.network.players={0} jogadores
+# menu.cpp Network, Hosting row: {0} is "N players"
+launcher.network.hosting_connected={0} conectados. Agora todos entram no Salão de Encontro Online e escolhem o mesmo salão.
+# menu.cpp:1025, info row
+launcher.network.hosting=Hospedando
+# menu.cpp:1079, label
+launcher.network.joined=Conectado
+# menu.cpp:1079, label
+launcher.network.join=Entrar
+# menu.cpp:1099, label
+launcher.network.recent=recente
+# menu.cpp Network, Save network log result: {0} is a folder
+launcher.network.could_not_write=Não foi possível gravar em {0}
+# menu.cpp System, section heading
+launcher.system.language_section=Idioma
+# menu.cpp System, setting row label
+launcher.system.language=Idioma
+# menu.cpp System, Language value; English and Português (Brasil) are shown in their own language
+launcher.system.language_auto=Auto
+# menu.cpp System, Language help
+launcher.system.language_help=Auto segue o idioma de um mod de tradução ativo; senão, o idioma de exibição do sistema. Aplica na hora.
+# menu.cpp:1246, section heading
+launcher.system.game=Jogo
+# menu.cpp System (Android), help: {0} is the project name
+launcher.system.save_log_help=Copia os logs do {0} (desta execução, da anterior e da pasta de logs) para uma pasta que você escolher, para enviar com um relatório de problema.
+# menu.cpp:1271, button row
+launcher.system.save_the_log=Salvar o log…
+# menu.cpp System (Android), Log row: {0} is the error
+launcher.system.not_saved=Não salvo: {0}
+# menu.cpp System, help: {0} is the project name
+launcher.system.open_data_folder_help=Mostra a pasta de dados do {0} no gerenciador de arquivos.
+# menu.cpp:1293, button row
+launcher.system.open_the_data_folder=Abrir a pasta de dados
+# menu.cpp System, help: {0} is the project name
+launcher.system.quit_help=Fecha o {0}. O progresso desde o último save é perdido.
+# menu.cpp:1302, button row
+launcher.system.quit_game=Sair do jogo
+# menu.cpp System, About: {0} is the GPU name
+launcher.system.graphics_value=Vulkan em {0}
+# menu.cpp:1318, info row
+launcher.system.graphics=Gráficos
+# menu.cpp confirm dialog: {0} is the project name
+launcher.system.setup_confirm_text=O {0} fecha o jogo e abre a configuração, onde você escolhe a imagem do disco de novo. O progresso desde o último save é perdido.
+# menu.cpp:1340, paragraph
+launcher.system.progress_since_your_last_save=O progresso desde o último save é perdido.
+# menu.cpp, toast after F12: {0} is the file name
+launcher.overlay.screenshot_saved=Captura salva: {0}
+# menu.cpp:150, label
+launcher.menu.settings=Configurações
+# menu.cpp:150, label
+launcher.menu.paused=Pausado
+# menu.cpp:150, label
+launcher.menu.running=Rodando
+# menu.cpp:151, label
+launcher.menu.video=Vídeo
+# menu.cpp:151, label
+launcher.menu.audio=Áudio
+# menu.cpp:151, label
+launcher.menu.controls=Controles
+# menu.cpp:151, label
+launcher.menu.network=Rede
+# menu.cpp:151, label
+launcher.menu.system=Sistema
+# menu.cpp:151, label
+launcher.menu.cheats=Trapaças
+# menu.cpp:169, footer control hint
+launcher.menu.select=Selecionar
+# menu.cpp:169, footer control hint
+launcher.menu.change=Alterar
+# menu.cpp:169, footer control hint
+launcher.menu.back=Voltar
+# menu.cpp:170, label
+launcher.menu.section=Seção
+# menu.cpp:173, label
+launcher.menu.resume=Continuar
+# menu.cpp:195, section heading
+launcher.video.picture=Imagem
+# menu.cpp:198, help text
+launcher.video.auto_draws_the_game_at=Auto desenha o jogo no tamanho da própria janela e o acompanha (no máximo 1632 linhas). ×1 a ×6 desenham 272 linhas por passo, 480×272 vezes o passo. (Preencher, em breve, vai alargar isto.) Mais alto é mais nítido e exige mais da GPU.
+# menu.cpp:204, label
+launcher.video.auto=Auto
+# menu.cpp:205, setting row
+launcher.video.resolution=Resolução
+# menu.cpp:219, setting row
+launcher.video.display=Exibição
+# menu.cpp:219, setting row
+launcher.video.fullscreen=Tela cheia
+# menu.cpp:219, setting row
+launcher.video.window=Janela
+# menu.cpp:220, help text
+launcher.video.fill_the_screen_or_play=Preenche a tela, ou jogue numa janela redimensionável.
+# menu.cpp:228, help text
+launcher.video.the_windows_size_in_multiples=O tamanho da janela, em múltiplos da tela do PSP.
+# menu.cpp:234, setting row
+launcher.video.window_size=Tamanho da janela
+# menu.cpp:243, label
+launcher.video.original=Original
+# menu.cpp:243, label
+launcher.video.stretch=Esticar
+# menu.cpp:248, help text
+launcher.video.original_keeps_the_psps_shape=Original mantém o formato do PSP com barras pretas nas laterais ou em cima. Esticar preenche a janela esticando a imagem.
+# menu.cpp:253, setting row
+launcher.video.aspect_ratio=Proporção
+# menu.cpp:267, setting row
+launcher.video.scaling_filter=Filtro de escala
+# menu.cpp:267, setting row
+launcher.video.sharp=Nítido
+# menu.cpp:267, setting row
+launcher.video.smooth=Suave
+# menu.cpp:268, help text
+launcher.video.how_the_finished_picture_is=Como a imagem final é escalada para a janela: suave (bilinear) ou nítida (pixel mais próximo).
+# menu.cpp:274, setting row
+launcher.video.texture_filter=Filtro de textura
+# menu.cpp:275, help text
+launcher.video.how_the_games_textures_are=Como as texturas do jogo são amostradas: suave (bilinear) ou nítida (texel mais próximo).
+# menu.cpp:282, section heading
+launcher.video.timing=Sincronia
+# menu.cpp:288, label
+launcher.video.on=Ligado
+# menu.cpp:290, label
+launcher.video.off_mailbox=Desl. (mailbox)
+# menu.cpp:292, label
+launcher.video.off_immediate=Desl. (imediato)
+# menu.cpp:297, label
+launcher.video.vsync=Vsync
+# menu.cpp:298, help text
+launcher.video.on_waits_for_the_displays=Ligado espera a atualização da tela e nunca rasga a imagem. Desligado mostra cada quadro na hora; a velocidade do jogo é a mesma nos dois casos.
+# menu.cpp:310, label
+launcher.video.match_display=Igual à tela
+# menu.cpp:319, row note
+launcher.video.game_speed_is_unlimited=Velocidade do jogo: Ilimitada
+# menu.cpp:336, help text
+launcher.video.with_vsync_on_no_faster=Com Vsync ligado, não mais rápido que a atualização da tela.
+# menu.cpp:337, help text
+launcher.video.lowered_to_keep_the_game=Reduzido para manter o jogo na velocidade total; tenta a taxa escolhida de novo depois.
+# menu.cpp:340, setting row
+launcher.video.frame_rate=Taxa de quadros
+# menu.cpp:351, help text
+launcher.video.on_lowers_the_frame_rate=Ligado reduz a taxa de quadros sozinho quando apresentar tantos quadros deixaria o jogo lento. Desligado mantém a taxa escolhida, e o jogo pode rodar abaixo da velocidade total.
+# menu.cpp:354, setting row
+launcher.video.lower_when_behind=Reduzir se atrasar
+# menu.cpp:354, setting row
+launcher.video.off=Desligado
+# menu.cpp:360, setting row
+launcher.video.game_speed=Velocidade do jogo
+# menu.cpp:360, setting row
+launcher.video.unlimited=Ilimitada
+# menu.cpp:360, setting row
+launcher.video.normal=Normal
+# menu.cpp:361, help text
+launcher.video.normal_holds_the_game_to=Normal mantém o jogo em tempo real. Ilimitada deixa rodar tão rápido quanto os quadros podem ser desenhados, o que também acelera o jogo.
+# menu.cpp:368, help text
+launcher.video.lets_the_game_run_ahead=Deixa o jogo correr à frente do tempo real enquanto carrega e está em silêncio, então os carregamentos levam o tempo que o computador precisar. Nunca durante o jogo, sons, vídeos ou jogo ad hoc.
+# menu.cpp:375, on/off row
+launcher.video.fast_loading=Carregamento rápido
+# menu.cpp:381, label
+launcher.video.overlay=Sobreposição
+# menu.cpp:381, label
+launcher.video.overlay_and_log=Sobreposição e log
+# menu.cpp:381, label
+launcher.video.log_only=Só log
+# menu.cpp:384, label
+launcher.video.performance=Desempenho
+# menu.cpp:385, help text
+launcher.video.frame_times_and_speed_in=Tempos de quadro e velocidade no canto superior esquerdo, e uma linha [perf] por segundo no console. F3 mostra ou oculta a sobreposição.
+# menu.cpp:442, section heading
+launcher.audio.output=Saída
+# menu.cpp:444, slider row
+launcher.audio.volume=Volume
+# menu.cpp:445, label
+launcher.audio.loudness_of_everything_the_game=Volume de tudo o que o jogo toca.
+# menu.cpp:450, on/off row
+launcher.audio.mute=Mudo
+# menu.cpp:450, help text
+launcher.audio.silence_the_game_without_losing=Silencia o jogo sem perder o ajuste de volume.
+# menu.cpp:455, info row
+launcher.audio.device=Dispositivo
+# menu.cpp:455, help text
+launcher.audio.44100_hz_stereo_paused_while=44100 Hz estéreo, pausado enquanto este menu está aberto
+# menu.cpp:455, info row
+launcher.audio.44100_hz_stereo=44100 Hz estéreo
+# menu.cpp:456, label
+launcher.audio.opens_when_the_game_starts=Abre quando o jogo começa
+# menu.cpp:456, label
+launcher.audio.none=Nenhum
+# menu.cpp:458, button row
+launcher.audio.restore_audio_defaults=Restaurar padrões de áudio
+# menu.cpp:458, button row
+launcher.audio.full_volume_not_muted=Volume máximo, sem mudo.
+# menu.cpp:563, section heading
+launcher.controls.gamepad=Controle
+# menu.cpp:567, info row
+launcher.controls.connected=Conectado
+# menu.cpp:567, help text
+launcher.controls.no_gamepad_the_keyboard_and=Sem controle; o teclado e o mouse comandam o jogo
+# menu.cpp:570, setting row
+launcher.controls.confirm_button=Botão de confirmar
+# menu.cpp:570, setting row
+launcher.controls.bottom_western=Inferior (Ocidental)
+# menu.cpp:570, setting row
+launcher.controls.right_japanese=Direito, ○ (Japonês)
+# menu.cpp:571, help text
+launcher.controls.which_face_button_confirms_in=Qual botão frontal confirma, no jogo e neste menu. Os avisos do jogo mostram ○ para confirmar e × para voltar.
+# menu.cpp:577, slider row
+launcher.controls.left_stick_dead_zone=Zona morta (analóg. esq.)
+# menu.cpp:578, help text
+launcher.controls.how_far_the_left_stick=Quanto o analógico esquerdo se move antes que o jogo perceba. Aumente se o personagem andar sozinho.
+# menu.cpp:587, label
+launcher.controls.same_as_left=Igual ao esquerdo
+# menu.cpp:588, slider row
+launcher.controls.right_stick_dead_zone=Zona morta (analóg. dir.)
+# menu.cpp:589, help text
+launcher.controls.how_far_the_right_stick=Quanto o analógico direito se move antes que a câmera gire. Igual ao esquerdo segue a zona morta do analógico esquerdo.
+# menu.cpp:596, slider row
+launcher.controls.trigger_point=Ponto do gatilho
+# menu.cpp:597, help text
+launcher.controls.how_far_lt_rt_l2=Quanto LT/RT (L2/R2) percorrem antes de apertar algo.
+# menu.cpp:605, help text
+launcher.controls.what_lt_rt_l2_r2=O que LT/RT (L2/R2) apertam. Padrão: L e R, como os botões de ombro.
+# menu.cpp:608, setting row
+launcher.controls.trigger_profile=Perfil dos gatilhos
+# menu.cpp:609, label
+launcher.controls.standard_l_r=Padrão (L / R)
+# menu.cpp:616, label
+launcher.controls.camera=Câmera
+# menu.cpp:616, label
+launcher.controls.d_pad=Direcional
+# menu.cpp:616, label
+launcher.controls.off=Desligado
+# menu.cpp:619, label
+launcher.controls.right_stick=Analógico direito
+# menu.cpp:620, help text
+launcher.controls.camera_uses_the_hd_releases=Câmera usa a câmera no analógico direito da versão HD. Direcional aperta o direcional, como os controles de câmera do PSP.
+# menu.cpp:634, help text
+launcher.controls.turn_and_tilt_the_quest=Gira e inclina a câmera da missão conforme o quanto o analógico é empurrado, em vez do giro em velocidade fixa e das posições verticais do jogo. Ao soltar, o ângulo fica; o direcional e o recentralizar voltam à câmera do jogo. Desligado é a câmera do próprio jogo, sem mudanças.
+# menu.cpp:639, row note
+launcher.controls.right_stick_is_not_the=O analógico direito não é a câmera
+# menu.cpp:641, on/off row
+launcher.controls.analog_camera=Câmera analógica
+# menu.cpp:645, help text
+launcher.controls.how_fast_the_camera_turns=A velocidade com que a câmera gira no máximo do analógico, em graus por segundo.
+# menu.cpp:648, row note
+launcher.controls.analog_camera_is_off=A câmera analógica está desligada
+# menu.cpp:651, slider row
+launcher.controls.camera_speed=Velocidade da câmera
+# menu.cpp:657, help text
+launcher.controls.how_fast_a_bow_or=A velocidade com que um arco ou uma balestra mira no máximo do analógico, em graus por segundo. A mira do próprio jogo anda a cerca de 100 e só depois de metade do curso do analógico.
+# menu.cpp:665, slider row
+launcher.controls.aim_speed=Velocidade da mira
+# menu.cpp:672, row help (footer)
+launcher.controls.turn_the_camera_the_other=Gira a câmera para o outro lado na horizontal.
+# menu.cpp:677, on/off row
+launcher.controls.invert_camera_horizontally=Inverter câmera na horizontal
+# menu.cpp:681, row help (footer)
+launcher.controls.turn_the_camera_the_other_2=Gira a câmera para o outro lado na vertical.
+# menu.cpp:686, on/off row
+launcher.controls.invert_camera_vertically=Inverter câmera na vertical
+# menu.cpp:690, help text
+launcher.controls.turn_the_camera_left_and=Gira a câmera para os lados com o cima e baixo do analógico, e vice-versa.
+# menu.cpp:696, on/off row
+launcher.controls.swap_camera_axes=Trocar eixos da câmera
+# menu.cpp:702, help text
+launcher.controls.how_far_the_right_stick_2=Quanto o analógico direito se move antes de apertar o direcional.
+# menu.cpp:706, row note
+launcher.controls.right_stick_is_not_the_2=O analógico direito não é o direcional
+# menu.cpp:709, slider row
+launcher.controls.right_stick_d_pad_point=Ponto direcional (analóg. dir.)
+# menu.cpp:718, setting row
+launcher.controls.when_the_game_asks_for=Quando o jogo pedir um nome
+# menu.cpp:718, setting row
+launcher.controls.on_screen_keyboard=Teclado na tela
+# menu.cpp:718, setting row
+launcher.controls.use_the_name_below=Usar o nome abaixo
+# menu.cpp:720, help text
+launcher.controls.on_screen_keyboard_type_the=Teclado na tela: digite o nome com o controle ou o teclado enquanto o jogo espera. Senão, o nome abaixo é usado na hora.
+# menu.cpp:727, help text
+launcher.controls.given_when_the_game_asks=Usado quando o jogo pede um nome e o teclado na tela está desligado, e mostrado aos outros jogadores quando o apelido de rede está vazio. Letras, números, espaços e pontuação simples.
+# menu.cpp:732, section heading
+launcher.controls.keyboard_and_mouse=Teclado e mouse
+# menu.cpp:735, help text
+launcher.controls.while_the_game_runs_the=Enquanto o jogo roda, a janela captura o ponteiro: mover o mouse gira a câmera e os botões dele apertam o que estiver associado. Esc abre este menu e devolve o ponteiro.
+# menu.cpp:738, on/off row
+launcher.controls.mouse=Mouse
+# menu.cpp:743, help text
+launcher.controls.degrees_the_camera_turns_for=Graus que a câmera gira por unidade de movimento do mouse. Enquanto um arco ou uma balestra mira, o mouse fica mais lento na proporção Velocidade da mira / Velocidade da câmera.
+# menu.cpp:747, row note
+launcher.controls.mouse_is_off=O mouse está desligado
+# menu.cpp:750, slider row
+launcher.controls.mouse_sensitivity=Sensibilidade do mouse
+# menu.cpp:754, help text
+launcher.controls.turn_the_camera_the_other_3=Gira a câmera para o outro lado quando o mouse se move para os lados.
+# menu.cpp:759, on/off row
+launcher.controls.invert_mouse_horizontally=Inverter mouse na horizontal
+# menu.cpp:763, help text
+launcher.controls.push_the_mouse_forward_to=Empurre o mouse para frente para olhar para baixo em vez de para cima.
+# menu.cpp:768, on/off row
+launcher.controls.invert_mouse_vertically=Inverter mouse na vertical
+# menu.cpp:779, help text
+launcher.controls.l3_r3_and_guide_are=L3, R3 e Guide ficam reservados para o menu (L3+R3).
+# menu.cpp:780, help text
+launcher.controls.esc_f3_f10_and_f12=Esc, F3, F10 e F12 ficam reservados para o menu, a sobreposição, a troca de texturas e as capturas.
+# menu.cpp:798, info row
+launcher.controls.note=Nota
+# menu.cpp:802, label
+launcher.controls.press_a_key_or_a=Aperte uma tecla ou um botão do mouse
+# menu.cpp:803, label
+launcher.controls.none=Nenhum
+# menu.cpp:805, help text
+launcher.controls.press_a_key_or_a_2=Aperte uma tecla ou um botão do mouse para adicioná-lo, ou um já associado para removê-lo; Esc cancela. Uma tecla tirada de outro comando sai dele.
+# menu.cpp:815, section heading
+launcher.controls.gamepad_buttons=Botões do controle
+# menu.cpp:820, label
+launcher.controls.press_a_gamepad_button=Aperte um botão do controle
+# menu.cpp:823, help text
+launcher.controls.press_a_gamepad_button_to=Aperte um botão do controle para adicioná-lo, ou um já associado para removê-lo; Esc cancela. Um botão tirado de outro comando sai dele. L3, R3 e Guide ficam reservados para o menu.
+# menu.cpp:834, button row
+launcher.controls.reset_gamepad_buttons=Redefinir botões do controle
+# menu.cpp:834, button row
+launcher.controls.every_gamepad_button_back_to=Todos os botões do controle voltam ao padrão.
+# menu.cpp:839, info row
+launcher.controls.esc=Esc
+# menu.cpp:839, info row
+launcher.controls.this_menu_cannot_be_rebound=Este menu (fixo)
+# menu.cpp:840, info row
+launcher.controls.performance_overlay_cannot_be_rebound=Sobreposição de desempenho (fixo)
+# menu.cpp:841, info row
+launcher.controls.texture_mods_on_off_cannot=Mods de textura lig./desl. (fixo)
+# menu.cpp:842, help text
+launcher.controls.screenshot_saved_to_the_screenshots=Captura de tela (salva na pasta Screenshots; fixo)
+# menu.cpp:882, section heading
+launcher.controls.touch_screen=Tela de toque
+# menu.cpp:885, help text
+launcher.controls.a_pad_drawn_over_the=Um controle desenhado sobre o jogo assim que a tela é tocada: um analógico que aparece onde o polegar esquerdo encosta, os botões frontais à direita, L e R nos cantos de cima. Arrastar na metade direita livre gira a câmera. Some de novo quando um controle ou o teclado é usado.
+# menu.cpp:889, on/off row
+launcher.controls.on_screen_controls=Controles na tela
+# menu.cpp:896, row note
+launcher.controls.on_screen_controls_are_off=Os controles na tela estão desligados
+# menu.cpp:901, help text
+launcher.controls.a_d_pad_at_the=Um direcional na borda esquerda, para os menus do jogo, a caixa de itens e os controles de câmera do direcional. Desligado cede o lugar ao analógico.
+# menu.cpp:908, slider row
+launcher.controls.controls_opacity=Opacidade dos controles
+# menu.cpp:909, help text
+launcher.controls.how_strongly_the_on_screen=Quão visíveis os controles na tela são desenhados.
+# menu.cpp:914, slider row
+launcher.controls.controls_size=Tamanho dos controles
+# menu.cpp:915, row help (footer)
+launcher.controls.the_size_of_the_on=O tamanho dos controles na tela.
+# menu.cpp:920, slider row
+launcher.controls.touch_camera_speed=Veloc. da câmera (toque)
+# menu.cpp:922, help text
+launcher.controls.degrees_the_camera_turns_for_2=Graus que a câmera gira ao arrastar pela altura da tela.
+# menu.cpp:927, button row
+launcher.controls.use_the_classic_keyboard_layout=Usar o layout de teclado clássico
+# menu.cpp:928, help text
+launcher.controls.the_keys_of_earlier_versions=As teclas das versões anteriores, para jogar sem mouse: I J K L movem, Z X A S são os botões frontais, Q e W são L e R.
+# menu.cpp:954, label
+launcher.network.off_line=Offline
+# menu.cpp:954, label
+launcher.network.off_line_the_game_is=Offline (o jogo não está online)
+# menu.cpp:956, label
+launcher.network.connecting=Conectando…
+# menu.cpp:961, label
+launcher.network.on_line=Online
+# menu.cpp:978, label
+launcher.network.none=Nenhum
+# menu.cpp:1020, section heading
+launcher.network.play_together=Jogar junto
+# menu.cpp:1028, info row
+launcher.network.your_addresses=Seus endereços
+# menu.cpp:1028, info row
+launcher.network.no_network_is_connected=Nenhuma rede conectada
+# menu.cpp:1035, help text
+launcher.network.copies_this_address_players_on=Copia este endereço. Jogadores na mesma rede encontram você em Entrar; numa VPN sem broadcast, como o Tailscale, eles digitam ali o seu endereço da VPN.
+# menu.cpp:1041, info row
+launcher.network.copied=Copiado
+# menu.cpp:1047, label
+launcher.network.not_in_a_hall=fora de um salão
+# menu.cpp:1052, button row
+launcher.network.stop_hosting=Parar de hospedar
+# menu.cpp:1054, help text
+launcher.network.stops_the_server_everyone_in=Para o servidor. Todos na sessão são desconectados, como quando uma conexão cai.
+# menu.cpp:1060, button row
+launcher.network.host_a_session=Hospedar uma sessão
+# menu.cpp:1062, help text
+launcher.network.runs_a_server_in_this=Roda um servidor neste jogo para os outros entrarem: sem outro programa, sem redirecionar portas numa rede local ou VPN. Depois todos entram no Salão de Encontro Online.
+# menu.cpp:1065, info row
+launcher.network.cannot_host=Impossível hospedar
+# menu.cpp:1068, section heading
+launcher.network.join_a_session=Entrar numa sessão
+# menu.cpp:1081, help text
+launcher.network.a_session_hosted_on_this=Uma sessão hospedada nesta rede. Entrar nela tira você de qualquer outra; depois entre no Salão de Encontro Online.
+# menu.cpp:1085, info row
+launcher.network.on_this_network=Nesta rede
+# menu.cpp:1085, info row
+launcher.network.looking_for_hosted_sessions=Procurando sessões hospedadas…
+# menu.cpp:1086, label
+launcher.network.address=Endereço
+# menu.cpp:1088, help text
+launcher.network.the_hosts_address_for_a=O endereço do host, para uma VPN sem broadcast como o Tailscale: a tela do host mostra. Confirmar entra na sessão.
+# menu.cpp:1100, button row
+launcher.network.a_session_you_joined_before=Uma sessão em que você já entrou.
+# menu.cpp:1110, section heading
+launcher.network.ad_hoc_play=Jogo ad hoc
+# menu.cpp:1112, help text
+launcher.network.multiplayer_with_other_players_off=Multijogador com outros jogadores. Desligado, o jogo diz que o interruptor sem fio está desligado. Desligar num salão de encontro faz você sair dele.
+# menu.cpp:1118, label
+launcher.network.server=Servidor
+# menu.cpp:1119, help text
+launcher.network.the_session_or_psp_ad=A sessão ou o servidor ad hoc de PSP com que o jogo fica online: nome ou endereço do host, host:porta se não for a 27312. Entrar preenche isto; para um servidor público, digite o nome dele. Aplica na próxima vez que o jogo ficar online.
+# menu.cpp:1126, label
+launcher.network.nickname=Apelido
+# menu.cpp:1127, help text
+launcher.network.the_name_other_players_and=O nome que os outros jogadores e o servidor veem. Vazio: o nome do jogador. Aplica na próxima vez que o jogo ficar online.
+# menu.cpp:1134, section heading
+launcher.network.status=Status
+# menu.cpp:1135, info row
+launcher.network.connection=Conexão
+# menu.cpp:1142, info row
+launcher.network.relayed=Retransmitido
+# menu.cpp:1149, label
+launcher.network.not_listening=Sem escutar
+# menu.cpp:1153, info row
+launcher.network.discovery=Descoberta
+# menu.cpp:1159, info row
+launcher.network.server_address=Endereço do servidor
+# menu.cpp:1160, info row
+launcher.network.you=Você
+# menu.cpp:1160, info row
+launcher.network.address_made_up_on_first=endereço criado no primeiro uso
+# menu.cpp:1162, info row
+launcher.network.group=Grupo
+# menu.cpp:1164, info row
+launcher.network.player=Jogador
+# menu.cpp:1166, label
+launcher.network.not_heard_yet=sem resposta ainda
+# menu.cpp:1174, info row
+launcher.network.relay_links=Links de retransmissão
+# menu.cpp:1176, info row
+launcher.network.per_second=Por segundo
+# menu.cpp:1177, info row
+launcher.network.since_start=Desde o início
+# menu.cpp:1178, info row
+launcher.network.problems=Problemas
+# menu.cpp:1181, section heading
+launcher.network.troubleshooting=Solução de problemas
+# menu.cpp:1182, on/off row
+launcher.network.network_overlay=Sobreposição de rede
+# menu.cpp:1183, help text
+launcher.network.a_small_panel_over_the=Um pequeno painel sobre o jogo com a conexão, o grupo e o tráfego.
+# menu.cpp:1185, on/off row
+launcher.network.log_every_call_and_packet=Registrar cada chamada e pacote
+# menu.cpp:1186, help text
+launcher.network.the_same_as_prefix_trace=O mesmo que <prefix>_TRACE_ADHOC=1: cada chamada ad hoc e cabeçalho de pacote vai para o console e para o log de rede. Pesado; serve para achar um problema.
+# menu.cpp:1189, button row
+launcher.network.save_network_log=Salvar log de rede
+# menu.cpp:1190, help text
+launcher.network.writes_the_recent_network_log=Grava o log de rede recente e o estado desta página num arquivo na pasta logs da pasta de dados, para enviar com um relatório de problema.
+# menu.cpp:1203, info row
+launcher.network.saved=Salvo
+# menu.cpp:1204, button row
+launcher.network.reconnect_now=Reconectar agora
+# menu.cpp:1205, help text
+launcher.network.drop_the_server_connection_and=Derruba a conexão com o servidor e conecta de novo na hora. O grupo é reunido de novo; uma missão em andamento pode terminar, como quando uma conexão cai.
+# menu.cpp:1208, button row
+launcher.network.disconnect=Desconectar
+# menu.cpp:1209, help text
+launcher.network.leave_the_group_as_if=Sai do grupo como se os outros jogadores tivessem caído. O jogo mostra a própria mensagem de desconexão.
+# menu.cpp:1216, button row
+launcher.network.restore_network_defaults=Restaurar padrões de rede
+# menu.cpp:1216, help text
+launcher.network.ad_hoc_play_off_and=Jogo ad hoc desligado e sem servidor. Seu endereço continua.
+# menu.cpp:1247, button row
+launcher.system.resume=Continuar
+# menu.cpp:1247, button row
+launcher.system.back_to_the_game=Volta ao jogo.
+# menu.cpp:1249, on/off row
+launcher.system.pause_the_game_when_the=Pausar o jogo quando o menu abrir
+# menu.cpp:1250, help text
+launcher.system.on_the_game_stops_while=Ligado: o jogo para enquanto este menu está aberto. Desligado: ele continua rodando e tocando som atrás do menu, que recebe todos os comandos. Aplica na próxima vez que o menu abrir.
+# menu.cpp:1256, on/off row
+launcher.system.pause_during_multiplayer=Pausar no multijogador
+# menu.cpp:1258, help text
+launcher.system.in_ad_hoc_play_the=No jogo ad hoc, o jogo continua rodando atrás do menu, a menos que isto esteja ligado: um jogo pausado para de responder aos outros jogadores e pode derrubar uma missão. Aplica na próxima vez que o menu abrir.
+# menu.cpp:1291, info row
+launcher.system.log=Log
+# menu.cpp:1298, button row
+launcher.system.set_up_game_data_again=Reconfigurar dados do jogo…
+# menu.cpp:1299, help text
+launcher.system.choose_the_disc_image_again=Escolha a imagem do disco de novo, por exemplo depois de movê-la. O jogo fecha antes.
+# menu.cpp:1307, section heading
+launcher.system.saves=Saves
+# menu.cpp:1311, section heading
+launcher.system.about=Sobre
+# menu.cpp:1313, info row
+launcher.system.build=Build
+# menu.cpp:1315, info row
+launcher.system.data_folder=Pasta de dados
+# menu.cpp:1317, info row
+launcher.system.saves_folder=Pasta de saves
+# menu.cpp:1339, heading
+launcher.system.quit_the_game=Sair do jogo?
+# menu.cpp:1339, heading
+launcher.system.set_up_game_data_again_2=Reconfigurar dados do jogo?
+# menu.cpp:1347, button
+launcher.system.quit=Sair
+# menu.cpp:1347, button
+launcher.system.close_and_set_up=Fechar e configurar
+# menu.cpp:1353, button
+launcher.system.cancel=Cancelar
+# menu.cpp:1358, footer control hint
+launcher.system.select=Selecionar
+# menu.cpp:1383, footer control hint
+launcher.overlay.settings_and_pause=Configurações e pausa
+# save_screen.cpp:864, label
+launcher.saves_rows.import_save=Importar save…
+# save_screen.cpp:905, help text
+launcher.saves_rows.copy_a_save_from_ppsspp=Copia um save do PPSSPP, de um memory stick ou de uma exportação: escolha a pasta PSP dele, ou uma pasta que a contenha ou contenha as pastas de save. Um save substituído é guardado.
+# save_screen.cpp:911, button row
+launcher.saves_rows.export_save=Exportar save…
+# save_screen.cpp:912, help text
+launcher.saves_rows.copy_your_game_data_and=Copia seus dados de jogo e missões baixadas para uma pasta que você escolher (o Android não oferece a própria pasta Download: crie ou escolha uma pasta dentro dela).
+# save_screen.cpp:921, help text
+launcher.saves_rows.copy_a_save_from_a=Copia um save de um memory stick de PSP, do PPSSPP ou de outra instalação: escolha a pasta dele ou a pasta PSP/SAVEDATA que o contém. Um save substituído é guardado, não apagado.
+# save_screen.cpp:929, help text
+launcher.saves_rows.copy_your_game_data_and_2=Copia seus dados de jogo e missões baixadas para uma pasta que você escolher, para levá-los a um PSP ou a outra máquina.
+# save_screen.cpp:936, button row
+launcher.saves_rows.back_up_saves=Fazer backup dos saves…
+# save_screen.cpp:937, help text
+launcher.saves_rows.copy_all_of_this_games=Copia todos os saves deste jogo, incluindo os dados de instalação, para a pasta de backups ou uma pasta que você escolher.
+# save_screen.cpp:954, button row
+launcher.saves_rows.open_the_saves_folder=Abrir a pasta de saves
+# save_screen.cpp:955, help text
+launcher.saves_rows.show_the_folder_the_game=Mostra no gerenciador de arquivos a pasta onde o jogo salva (PSP/SAVEDATA).
+# widgets.cpp:422, label
+launcher.common.on=Lig.
+# widgets.cpp:422, label
+launcher.common.off=Desl.
+# mods_page.cpp, result: {0} is the mod name
+launcher.mods.installed_message={0} está instalado. Ative-o na lista para usar.
+# mods_page.cpp, result: {0} is the reason
+launcher.mods.not_installed_message=Não instalado. {0}
+# mods_page.cpp, result: {0} is the mod name
+launcher.mods.updated_message={0} foi atualizado e continua ativo.
+# mods_page.cpp, section heading: {0} is the mod type (Texture, Text...)
+launcher.mods.group=Mods de {0}
+# mods_page.cpp, row note: {0} is the load-order position
+launcher.mods.on_position=Ativo, nº {0}
+# mods_page.cpp: {0} is the problem
+launcher.mods.cant_be_used_reason=Não pode ser usado: {0}
+# mods_page.cpp:174, button row
+launcher.mods.move_up=Subir
+# mods_page.cpp:180, button row
+launcher.mods.move_down=Descer
+# mods_page.cpp, Texture dump: {0} is a folder
+launcher.mods.texture_dump_help=Salva as texturas originais do jogo em {0} para retexturização. O mod de textura é ignorado durante a extração, e a taxa de quadros fica menor. Aplica na próxima vez que você iniciar o Freedom Unbound.
+# mods_page.cpp, install review: {0} size, {1} file count
+launcher.mods.size_value={0}, {1} arquivos
+# mods_page.cpp:224, info row
+launcher.mods.size=Tamanho
+# mods_page.cpp, install review: {0} is the installed version
+launcher.mods.replaces_version=Isto substitui a cópia instalada (v{0}).
+# mods_page.cpp:232, paragraph
+launcher.mods.this_replaces_the_installed_copy=Isto substitui a cópia instalada.
+# mods_page.cpp, heading: {0} is the mod name
+launcher.mods.installing=Instalando {0}
+# mods_page.cpp, install progress bar
+launcher.mods.progress={0} de {1}
+# mods_page.cpp:120, panel title
+launcher.mods.mods=Mods
+# mods_page.cpp:126, section heading
+launcher.mods.install_a_mod=Instalar um mod
+# mods_page.cpp:127, paragraph
+launcher.mods.to_install_a_mod_drag=Para instalar um mod, arraste o arquivo .zip dele do seu computador e solte em qualquer lugar desta janela. Você verá o nome, a versão e os detalhes; escolha Instalar e pronto. Não descompacte antes: o launcher lê o próprio .zip.
+# mods_page.cpp:130, paragraph
+launcher.mods.installed_mods_are_listed_below=Os mods instalados estão listados abaixo por tipo. Ative ou desative quando quiser; as mudanças valem na próxima vez que o jogo desenhar. Só um mod de textura, e um mod de texto por idioma, podem ficar ativos ao mesmo tempo. Os mods ativos carregam de cima para baixo, e o de baixo vence onde dois se sobrepõem.
+# mods_page.cpp:135, section heading
+launcher.mods.installed_mods=Mods instalados
+# mods_page.cpp:136, paragraph
+launcher.mods.no_mods_installed_yet=Nenhum mod instalado ainda.
+# mods_page.cpp:153, row note
+launcher.mods.cant_be_used=Não pode ser usado
+# mods_page.cpp:155, label
+launcher.mods.off=Desligado
+# mods_page.cpp:173, row help (footer)
+launcher.mods.changes_the_order_mods_that=Muda a ordem em que os mods ativos carregam.
+# mods_page.cpp:194, section heading
+launcher.mods.texture_dump=Extração de texturas
+# mods_page.cpp:197, row note
+launcher.mods.on=Ligado
+# mods_page.cpp:198, help text
+launcher.mods.saves_the_games_original_textures=Salva as texturas originais do jogo para retexturização.
+# mods_page.cpp:200, on/off row
+launcher.mods.dump_textures=Extrair texturas
+# mods_page.cpp:203, label
+launcher.mods.couldnt_save_the_setting_to=Falha ao salvar a configuração em launcher.ini.
+# mods_page.cpp:213, button row
+launcher.mods.back=Voltar
+# mods_page.cpp:218, heading
+launcher.mods.cant_install_this_file=Impossível instalar este arquivo
+# mods_page.cpp:220, info row
+launcher.mods.version=Versão
+# mods_page.cpp:221, info row
+launcher.mods.author=Autor
+# mods_page.cpp:222, info row
+launcher.mods.type=Tipo
+# mods_page.cpp:222, info row
+launcher.mods.texture_pack=Pacote de texturas
+# mods_page.cpp:223, info row
+launcher.mods.language=Idioma
+# mods_page.cpp:227, paragraph
+launcher.mods.this_zip_has_no_mod=Este zip não tem mod.json, então recebe o nome do arquivo.
+# mods_page.cpp:229, paragraph
+launcher.mods.this_mod_changes_your_save=Este mod altera seu save. Enquanto estiver ativo, seu save passa por backup antes de o jogo começar com outro conjunto de mods.
+# mods_page.cpp:236, button row
+launcher.mods.install=Instalar
+# mods_page.cpp:245, button row
+launcher.mods.cancel=Cancelar
+# mods_page.cpp:249, button row
+launcher.mods.ok=OK
+# mods_page.cpp:261, heading
+launcher.mods.installed=Instalado
+# mods_page.cpp:261, heading
+launcher.mods.not_installed=Não instalado
+# mods_page.cpp:268, footer control hint
+launcher.mods.select=Selecionar
+# bug_report.cpp:343, panel title
+launcher.report.report_a_bug=Relatar um bug
+# bug_report.cpp:345, paragraph
+launcher.report.creates_a_zip_with_your=Cria um zip com seus logs recentes, configurações e lista de mods para anexar a um relatório de bug. Seus saves, a chave de save, os arquivos do jogo e caminhos pessoais ficam de fora.
+# bug_report.cpp:351, button row
+launcher.report.creating_report=Criando relatório...
+# bug_report.cpp:351, button row
+launcher.report.create_bug_report=Criar relatório de bug
+# bug_report.cpp:352, help text
+launcher.report.writes_the_zip_to_the=Grava o zip na pasta BugReports e a abre.
+# bug_report.cpp:358, info row
+launcher.report.saved=Salvo
+# bug_report.cpp:359, info row
+launcher.report.failed=Falhou
+# bug_report.cpp:362, button row
+launcher.report.open_reports_folder=Abrir pasta de relatórios
+# bug_report.cpp:362, button row
+launcher.report.show_the_bugreports_folder=Mostra a pasta BugReports.
+# bug_report.cpp:369, button row
+launcher.report.open_discord=Abrir Discord
+# bug_report.cpp:369, button row
+launcher.report.post_the_zip_in_the=Poste o zip no canal de relatórios de bug.
+# bug_report.cpp:374, button row
+launcher.report.back=Voltar
+# bug_report.cpp:374, button row
+launcher.report.back_to_the_home_screen=Volta à tela inicial.
+# bug_report.cpp:376, footer control hint
+launcher.report.select=Selecionar
+# whats_new.cpp:85, panel title
+launcher.whats_new.whats_new=Novidades
+# whats_new.cpp:88, paragraph
+launcher.whats_new.no_notes_for_this_version=Ainda não há notas para esta versão. Elas aparecem aqui quando a versão for publicada.
+# whats_new.cpp:113, button row
+launcher.whats_new.continue=Continuar
+# whats_new.cpp:113, button row
+launcher.whats_new.back_to_the_home_screen=Volta à tela inicial.
+# whats_new.cpp:114, button row
+launcher.whats_new.open_release_page=Abrir página da versão
+# whats_new.cpp:114, help text
+launcher.whats_new.this_versions_page_on_github=A página desta versão no GitHub, no seu navegador.
+# whats_new.cpp:117, button row
+launcher.whats_new.open_discord=Abrir Discord
+# whats_new.cpp:117, button row
+launcher.whats_new.news_help_and_bug_reports=Notícias, ajuda e relatórios de bug.
+# whats_new.cpp:120, footer control hint
+launcher.whats_new.select=Selecionar
+# whats_new.cpp:120, footer control hint
+launcher.whats_new.back=Voltar
+# updater.cpp, home update button: {0} is the version
+launcher.update.up_to_date=Atualizado - v{0}
+# updater.cpp, home update button: {0} is the version
+launcher.update.offline=Offline - v{0}
+# updater.cpp, home update button: {0} is the new version tag
+launcher.update.update_to=Atualizar p/ {0}
+# updater.cpp, home update button: {0} is the new version tag
+launcher.update.downloading=Baixando {0}...
+# updater.cpp, home update button: {0} is the error
+launcher.update.failed_retry={0} - repetir
+# updater.cpp, update banner: {0} new tag, {1} installed version
+launcher.update.banner=Freedom Unbound {0} saiu (você tem a v{1}).
+# updater.cpp:288, update error
+launcher.update.download_failed=Falha no download
+# updater.cpp:289, update error
+launcher.update.checksum_download_failed=Falha ao baixar o checksum
+# updater.cpp:292, update error
+launcher.update.update_failed_its_checksum=A atualização falhou no checksum
+# updater.cpp:301, update error
+launcher.update.update_zip_is_damaged=O ZIP da atualização está danificado
+# updater.cpp:325, update error
+launcher.update.update_zip_has_no_launcher=O ZIP da atualização não tem launcher
+# updater.cpp:347, update error
+launcher.update.could_not_write_the_update=Não foi possível gravar o auxiliar de atualização
+# updater.cpp:356, update error
+launcher.update.could_not_start_the_update=Não foi possível iniciar o auxiliar de atualização
+# updater.cpp:361, update error
+launcher.update.updates_need_windows=Atualizações exigem Windows
+# updater.cpp:380, label
+launcher.update.checking_for_updates=Procurando atualizações...
+# updater.cpp:385, label
+launcher.update.restarting=Reiniciando...
+# updater.cpp:393, label
+launcher.update.update_failed_retry=Falha ao atualizar - repetir
+# updater.cpp:395, paragraph
+launcher.update.cheats_are_on_see_cheats=Trapaças ativas (veja Trapaças)
+# updater.cpp:406, footer help
+launcher.update.check_for_updates_again=Procura atualizações de novo.
+# updater.cpp:458, paragraph
+launcher.update.nothing_is_downloaded_until_you=Nada é baixado até você escolher Atualizar no canto inferior esquerdo.
+# updater.cpp:461, button
+launcher.update.open_release_page=Abrir página da versão
+# updater.cpp:463, button
+launcher.update.dismiss_for_this_version=Ignorar nesta versão
+
+# ---- Cheats page (launcher.cheats.*, cheats-keys-en.txt; added 2026-10-14) ----
+# EN: Cheats
+launcher.cheats.title=Trapaças
+# EN: Progression testing
+launcher.cheats.progression_testing=Teste de progresso
+# EN: Cheats affect gameplay and earned progress. Turn them off when checking normal combat, stamina costs or difficulty.
+launcher.cheats.intro=Trapaças afetam a jogabilidade e o progresso obtido. Desligue-as ao avaliar o combate normal, o custo de vigor ou a dificuldade.
+# EN: Unlimited health
+launcher.cheats.unlimited_health=Vida ilimitada
+# EN: Refill health to its current maximum and block incoming damage. Does not revive a fainted hunter.
+launcher.cheats.unlimited_health_help=Recarrega a vida até o máximo atual e bloqueia o dano recebido. Não revive um caçador desmaiado.
+# EN: Unlimited stamina
+launcher.cheats.unlimited_stamina=Vigor ilimitado
+# EN: Refill stamina to its current maximum and prevent action costs.
+launcher.cheats.unlimited_stamina_help=Recarrega o vigor até o máximo atual e evita o custo das ações.
+# EN: One-hit kills
+launcher.cheats.one_hit_kills=Mata com um golpe
+# EN: A damaging monster-health update becomes lethal. Requires a hit; monsters remain alive until damaged.
+launcher.cheats.one_hit_kills_help=Qualquer dano à vida de um monstro se torna letal. Exige um acerto; os monstros continuam vivos até levarem dano.
+# EN: Max money
+launcher.cheats.max_money=Dinheiro máximo
+# EN: Keep 9,999,999 zenny. Turning this off resumes normal spending; earned money remains.
+launcher.cheats.max_money_help=Mantém 9.999.999 zenny. Desligar volta aos gastos normais; o dinheiro ganho fica.
+# EN: Max stack on box deposit
+launcher.cheats.box_stacks=Pilha máx. ao guardar na caixa
+# EN: Fill incoming item-box stacks to 99. Turning this off restores normal deposits; existing items remain.
+launcher.cheats.box_stacks_help=Completa para 99 as pilhas que entram na caixa de itens. Desligar volta ao normal; os itens que já estão lá ficam.
+# EN: No crafting requirements
+launcher.cheats.free_craft=Fabricação sem requisitos
+# EN: Free materials and fees for available equipment and decorations; upgrades unrestricted. Enable Max money for affordability. Restart after disabling.
+launcher.cheats.free_craft_help=Materiais e taxas grátis para equipamentos e adornos disponíveis; melhorias sem restrição. Ative Dinheiro máximo para poder pagar. Reinicie após desativar.
+# EN: Complete quest with L+R
+launcher.cheats.quest_complete=Concluir missão com L+R
+# EN: Press the mapped PSP L and R buttons together during an active quest to start normal quest completion. Turning this off stops the shortcut; completed progress remains.
+launcher.cheats.quest_complete_help=Aperte juntos os botões L e R do PSP mapeados durante uma missão ativa para iniciar a conclusão normal da missão. Desligar remove o atalho; o progresso concluído fica.
+# EN: Disable all cheats
+launcher.cheats.disable_all=Desligar todas as trapaças
+# EN: Free crafting is off. Restart the game before crafting again to refresh cached smithy requirements. Crafted equipment remains.
+launcher.cheats.restart_required=A fabricação grátis está desligada. Reinicie o jogo antes de fabricar de novo para atualizar os requisitos da forja em cache. O equipamento fabricado fica.
+# EN: Could not save cheat preferences. Changes apply for this session.
+launcher.cheats.save_failed=Falha ao salvar as preferências de trapaça. As mudanças valem nesta sessão.
+# EN: Back
+launcher.cheats.back=Voltar
+# EN: Select
+launcher.cheats.select=Selecionar
+
+# ---- FU Saves: save and message dialogs, keyboard, launcher save summary (45 ids; host_text.cpp kDefaults) ----
+# EN: Message
+dialog.title.message=Mensagem
+# EN: Error
+dialog.title.error=Erro
+# EN: Load
+dialog.title.load=Carregar
+# EN: Save
+dialog.title.save=Salvar
+# EN: Delete
+dialog.title.delete=Apagar
+# EN: Confirm
+dialog.subtitle.confirm=Confirmar
+# EN: Default: No
+dialog.subtitle.default_no=Padrão: Não
+# EN: Yes / No
+dialog.subtitle.yes_no=Sim / Não
+# EN: No data
+dialog.subtitle.no_data=Sem dados
+# EN: {0} save
+dialog.subtitle.save_count_one={0} save
+# EN: {0} saves
+dialog.subtitle.save_count={0} saves
+# EN: Yes overwrites or deletes. No returns to the list.
+dialog.footer.confirm=Sim sobrescreve ou apaga. Não volta à lista.
+# EN: Dismiss the message.
+dialog.footer.notice=Feche a mensagem.
+# EN: Yes or No. Back leaves the question.
+dialog.footer.yes_no=Sim ou Não. Voltar sai da pergunta.
+# EN: There is nothing to choose.
+dialog.footer.empty=Não há nada para escolher.
+# EN: Choose a save to load, or cancel.
+dialog.footer.load=Escolha um save para carregar, ou cancele.
+# EN: Choose a save to delete, or cancel.
+dialog.footer.delete=Escolha um save para apagar, ou cancele.
+# EN: Choose where to save, or cancel.
+dialog.footer.save=Escolha onde salvar, ou cancele.
+# EN: Delete this save?
+save.confirm.delete=Apagar este save?
+# EN: Overwrite this save?
+save.confirm.overwrite=Sobrescrever este save?
+# EN: Yes
+dialog.button.yes=Sim
+# EN: No
+dialog.button.no=Não
+# EN: OK
+dialog.button.ok=OK
+# EN: Back
+dialog.button.back=Voltar
+# EN: OK
+dialog.hint.ok=OK
+# EN: Choose
+dialog.hint.choose=Escolher
+# EN: Back
+dialog.hint.back=Voltar
+# EN: Select
+dialog.hint.select=Selecionar
+# EN: Cancel
+dialog.hint.cancel=Cancelar
+# EN: There is no data.
+save.no_data=Não há dados.
+# EN: Save data
+save.slot.untitled=Dados salvos
+# EN: Empty
+save.slot.empty=Vazio
+# EN: {0} KB
+save.slot.size_kb={0} KB
+# EN: A system error has occurred. ({0})
+dialog.system_error=Ocorreu um erro de sistema. ({0})
+# EN: (no message)
+dialog.no_message=(sem mensagem)
+# EN: Enter a name
+keyboard.title=Digite um nome
+# EN: SAVE SLOT {0}
+launcher.save.slot=ESPAÇO DE SAVE {0}
+launcher.save.load=Carregar
+launcher.save.loading=Carregando {0}...
+launcher.save.cancel_load=Pressione Esc para cancelar
+launcher.save.load_cancelled=Carregamento automático cancelado. Continue manualmente.
+launcher.save.load_changed=O save selecionado mudou. Carregue-o manualmente.
+launcher.save.load_timeout=O carregamento automático demorou demais. Continue manualmente.
+launcher.save.load_unexpected=Carregamento automático interrompido em uma tela inesperada. Continue manualmente.
+launcher.save.portrait_pending=Prévia após selecionar o caçador
+# EN: Preview unavailable
+launcher.save.unavailable=Prévia indisponível
+# EN: Check the Saves menu
+launcher.save.unavailable_hint=Veja o menu Saves
+# EN: Preview pending
+launcher.save.pending=Prévia pendente
+# EN: Updates when you play
+launcher.save.pending_hint=Atualiza quando você jogar
+# EN: No hunter saved
+launcher.save.empty=Nenhum caçador salvo
+# EN: Hunter Rank  {0}
+launcher.save.hunter_rank=Ranque de Caçador  {0}
+# EN: {0} Zenny
+launcher.save.zenny={0} Zenny
+# EN: Time  {0}
+launcher.save.play_time=Tempo  {0}
+
+# ---- FU Saves: Saves screen (backups, restore, PSP import) and mods-changed warning (also from host_text.cpp; translated too) ----
+# EN: Back up to the manual backups folder
+saves.manual_backups.back_up_here=Fazer backup na pasta de backups manuais
+# EN: Into {0}. Manual backups are kept until you delete them; Restore a backup lists only the automatic ones.
+saves.manual_backups.back_up_here_help=Em {0}. Backups manuais ficam até você apagá-los; Restaurar um backup lista só os automáticos.
+# EN: Open the manual backups folder
+saves.manual_backups.open=Abrir a pasta de backups manuais
+# EN: Show {0}, where Back up saves puts its copies.
+saves.manual_backups.open_help=Mostra {0}, onde Fazer backup dos saves guarda as cópias.
+# EN: Open the automatic backups folder
+saves.auto_backups.open=Abrir a pasta de backups automáticos
+# EN: Show {0}: the copies made before the game starts, which Restore a backup lists.
+saves.auto_backups.open_help=Mostra {0}: as cópias feitas antes de o jogo começar, que Restaurar um backup lista.
+# EN: Restore a backup
+saves.restore.row=Restaurar um backup
+# EN: Put back one of the last {0} automatic backups. One is made before the game starts whenever the save changed.
+saves.restore.row_help=Recupera um dos últimos {0} backups automáticos. Um é feito antes de o jogo começar sempre que o save mudou.
+# EN: From the launcher
+saves.restore.row_in_game=Pelo launcher
+# EN: Restore from the launcher's Saves screen, before the game starts: the running game would save over a restored save.
+saves.restore.row_help_in_game=Restaure pela tela Saves do launcher, antes de o jogo começar: o jogo em execução salvaria por cima de um save restaurado.
+# EN: Restore a backup
+saves.restore.title=Restaurar um backup
+# EN: Before the game starts, your save is copied to {0} when it changed since the last copy. The newest {1} are kept.
+saves.restore.intro=Antes de o jogo começar, seu save é copiado para {0} quando mudou desde a última cópia. Os {1} mais recentes são mantidos.
+# EN: There is no automatic backup yet. One is made the next time you play.
+saves.restore.none=Ainda não há backup automático. Um é feito na próxima vez que você jogar.
+# EN: Restore the save as it was on {0}. Your current save is backed up first.
+saves.restore.entry_help=Restaura o save como estava em {0}. Seu save atual passa por backup antes.
+# EN: No summary
+saves.restore.no_summary=Sem resumo
+# EN: HR {0}  {1}
+saves.restore.slot=HR {0}  {1}
+# EN:   /
+saves.restore.slot_separator="  /  "
+# EN: Open save folder
+saves.restore.open_save_folder=Abrir pasta de saves
+# EN: Show the save folder in the file manager: {0}
+saves.restore.open_save_folder_help=Mostra a pasta de saves no gerenciador de arquivos: {0}
+# EN: Open the automatic backups folder
+saves.restore.open_backups=Abrir a pasta de backups automáticos
+# EN: Show {0}.
+saves.restore.open_backups_help=Mostra {0}.
+# EN: Cancel
+saves.restore.cancel=Cancelar
+# EN: Back to the menu.
+saves.restore.cancel_help=Volta ao menu.
+# EN: Restore this backup?
+saves.restore.confirm_title=Restaurar este backup?
+# EN: Your save is replaced with the backup from {0} ({1}). Your current save is backed up first, so you can restore it again later.
+saves.restore.confirm_text=Seu save é substituído pelo backup de {0} ({1}). Seu save atual passa por backup antes, para você poder restaurá-lo depois.
+# EN: Keep my current save
+saves.restore.confirm_keep=Manter meu save atual
+# EN: Back to the list of backups.
+saves.restore.confirm_keep_help=Volta à lista de backups.
+# EN: Restore
+saves.restore.confirm_button=Restaurar
+# EN: Back up the current save, then put this backup in its place.
+saves.restore.confirm_button_help=Faz backup do save atual e põe este backup no lugar.
+# EN: Restored
+saves.restore.restored=Restaurado
+# EN: The save from {0}
+saves.restore.restored_value=O save de {0}
+# EN: Not restored
+saves.restore.failed=Não restaurado
+# EN: Done
+saves.restore.done=Pronto
+# EN: Back to the menu.
+saves.restore.done_help=Volta ao menu.
+# EN: Import a PSP save…
+saves.import_pre.row=Importar save de PSP…
+# EN: Copy a save from a PSP memory stick or PPSSPP: choose its PSP/SAVEDATA/{0} folder. Your current save is backed up first.
+saves.import_pre.row_help=Copia um save de um memory stick de PSP ou do PPSSPP: escolha a pasta PSP/SAVEDATA/{0} dele. Seu save atual passa por backup antes.
+# EN: Import a PSP save
+saves.import_pre.title=Importar save de PSP
+# EN: From {0}
+saves.import_pre.from=De {0}
+# EN: Save to import
+saves.import_pre.incoming=Save a importar
+# EN: Current save
+saves.import_pre.current=Save atual
+# EN: None
+saves.import_pre.none=Nenhum
+# EN: Saved {0}, {1}
+saves.import_pre.saved=Salvo em {0}, {1}
+# EN: Your current save is copied to the automatic backups first, and also kept in the saves folder's .backup folder. The game checks the imported save when it loads it.
+saves.import_pre.note=Seu save atual é copiado antes para os backups automáticos, e também guardado na pasta .backup da pasta de saves. O jogo verifica o save importado ao carregá-lo.
+# EN: No save of this game was found here. Choose the PSP/SAVEDATA/{0} folder.
+saves.import_pre.problem.no_save=Nenhum save deste jogo foi encontrado aqui. Escolha a pasta PSP/SAVEDATA/{0}.
+# EN: This save's PARAM.SFO is missing or damaged.
+saves.import_pre.problem.bad_sfo=O PARAM.SFO deste save está ausente ou danificado.
+# EN: This folder is not the game's main save ({0}).
+saves.import_pre.problem.other_save=Esta pasta não é o save principal do jogo ({0}).
+# EN: This save has no {1} data file, or it is empty.
+saves.import_pre.problem.no_data=Este save não tem o arquivo de dados {1}, ou ele está vazio.
+# EN: Back up and import
+saves.import_pre.button=Fazer backup e importar
+# EN: Back up your current save, then put this one in its place.
+saves.import_pre.button_help=Faz backup do seu save atual e põe este no lugar.
+# EN: Choose another folder
+saves.import_pre.choose_another=Escolher outra pasta
+# EN: Back to the folders.
+saves.import_pre.choose_another_help=Volta às pastas.
+# EN: Cancel
+saves.import_pre.cancel=Cancelar
+# EN: Import nothing.
+saves.import_pre.cancel_help=Não importa nada.
+# EN: Imported
+saves.import_pre.done=Importado
+# EN: The save is ready. Play to load it.
+saves.import_pre.done_value=O save está pronto. Jogue para carregá-lo.
+# EN: Backed up to
+saves.import_pre.backed_up=Backup feito em
+# EN: Old save also kept in
+saves.import_pre.replaced=Save antigo também guardado em
+# EN: Not imported
+saves.import_pre.failed=Não importado
+# EN: Done
+saves.import_pre.finish=Pronto
+# EN: Back to the menu.
+saves.import_pre.finish_help=Volta ao menu.
+# EN: Import: open the save's PSP/SAVEDATA/{0} folder.
+saves.import_pre.browse_note=Importar: abra a pasta PSP/SAVEDATA/{0} do save.
+# EN: Mods changed
+launcher.mods_warning.title=Mods alterados
+# EN: The mods that change saves are not the ones your save was last used with. Playing may change your save in ways that are hard to undo.
+launcher.mods_warning.text=Os mods que alteram saves não são os mesmos com que seu save foi usado por último. Jogar pode alterar seu save de formas difíceis de desfazer.
+# EN: Now on: {0}
+launcher.mods_warning.added=Agora ativo: {0}
+# EN: Now off: {0}
+launcher.mods_warning.removed=Agora desativado: {0}
+# EN: ,
+launcher.mods_warning.separator=", "
+# EN: Back up, then play
+launcher.mods_warning.backup_and_play=Fazer backup e jogar
+# EN: Copy your save to the automatic backups now, then start.
+launcher.mods_warning.backup_and_play_help=Copia seu save para os backups automáticos agora e inicia.
+# EN: Play without a backup
+launcher.mods_warning.play=Jogar sem backup
+# EN: Start the game as it is.
+launcher.mods_warning.play_help=Inicia o jogo como está.
+# EN: Back
+launcher.mods_warning.cancel=Voltar
+# EN: Back to the home screen, to change the mods.
+launcher.mods_warning.cancel_help=Volta à tela inicial, para mudar os mods.
+# EN: The backup failed: {0}
+launcher.mods_warning.backup_failed=O backup falhou: {0}
+
+# ---- FU Saves batch 1: Back up / Export / Import folder screens and folder picker (added 2026-10-14) ----
+# Flatpak only: under a failed export or backup.
+# EN: The Flatpak can read your folders but write only to its own data folder and to Downloads. Pick Downloads or the manual backups folder; Open the manual backups folder shows where that is.
+launcher.save.flatpak_note=O Flatpak pode ler suas pastas, mas só grava na própria pasta de dados e em Downloads. Escolha Downloads ou a pasta de backups manuais; Abrir a pasta de backups manuais mostra onde ela fica.
+# Header of the Back up screen and its result screen.
+# EN: Back up saves
+launcher.save.backup.title=Fazer backup dos saves
+# Back up screen when there is no save.
+# EN: There is no save to back up yet.
+launcher.save.backup.nothing=Ainda não há save para fazer backup.
+# {0} = the saves being copied, e.g. Game data.
+# EN: Copies {0} to a folder. To restore a backup, import it.
+launcher.save.backup.intro=Copia {0} para uma pasta. Para restaurar um backup, importe-o.
+# Toggle row.
+# EN: Add a timestamp to the backup name
+launcher.save.backup.timestamp=Adicionar data e hora ao nome do backup
+# Footer for the timestamp toggle; keep the example date as is.
+# EN: On: every backup is a new folder named by its date and time, such as 2026-09-19_19-05-12, holding the save folders. Off: the save folders go straight into the folder you choose, and an earlier backup there is replaced after asking.
+launcher.save.backup.timestamp_help=Ligado: cada backup é uma pasta nova com a data e hora, como 2026-09-19_19-05-12, contendo as pastas de save. Desligado: as pastas de save vão direto para a pasta que você escolher, e um backup anterior ali é substituído após confirmação.
+# Button; opens the folder picker.
+# EN: Back up to another folder…
+launcher.save.backup.other_folder=Fazer backup em outra pasta…
+# Footer for the button above.
+# EN: Choose where the backup goes.
+launcher.save.backup.other_folder_help=Escolha para onde vai o backup.
+# Button leaving the Back up screen.
+# EN: Cancel
+launcher.save.backup.cancel=Cancelar
+# Footer for Cancel.
+# EN: Back to the menu.
+launcher.save.backup.cancel_help=Volta ao menu.
+# Header when the chosen folder already holds a backup.
+# EN: Replace the earlier backup?
+launcher.save.backup.replace_title=Substituir o backup anterior?
+# {0} = folder path, {1} = the saves.
+# EN: {0} already holds a backup of {1}. Backing up again replaces it with your saves as they are now.
+launcher.save.backup.replace_text={0} já contém um backup de {1}. Fazer backup de novo o substitui pelos seus saves como estão agora.
+# Button: keep the earlier backup.
+# EN: Cancel
+launcher.save.backup.replace_keep=Cancelar
+# Footer for that Cancel.
+# EN: Keep the earlier backup.
+launcher.save.backup.replace_keep_help=Mantém o backup anterior.
+# Button (red): overwrite the earlier backup.
+# EN: Replace the backup
+launcher.save.backup.replace_button=Substituir o backup
+# Footer for Replace the backup.
+# EN: The earlier backup there is replaced.
+launcher.save.backup.replace_button_help=O backup anterior ali é substituído.
+# Result row label; the value is the saves.
+# EN: Backed up
+launcher.save.backup.backed_up=Backup feito
+# Result row label; the value is the folder.
+# EN: To
+launcher.save.backup.to=Em
+# Result row label; the value is the error.
+# EN: Not backed up
+launcher.save.backup.failed=Sem backup
+# Result button.
+# EN: Open the folder
+launcher.save.backup.open_folder=Abrir a pasta
+# Footer for Open the folder.
+# EN: Show the backup in the file manager.
+launcher.save.backup.open_folder_help=Mostra o backup no gerenciador de arquivos.
+# Result button.
+# EN: Done
+launcher.save.backup.done=Pronto
+# Footer for Done.
+# EN: Back to the menu.
+launcher.save.backup.done_help=Volta ao menu.
+# Top line of the Import folder screen (in game).
+# EN: Import: open a save folder, or choose a folder that holds them, such as a memory stick's PSP/SAVEDATA.
+launcher.save.picker.import_note=Importar: abra uma pasta de save, ou escolha uma pasta que as contenha, como a PSP/SAVEDATA de um memory stick.
+# Top line of the Export folder screen.
+# EN: Export: choose the folder to copy your saves to.
+launcher.save.picker.export_note=Exportar: escolha a pasta para onde copiar seus saves.
+# Top line of the Back up folder screen.
+# EN: Back up: choose the folder the backup goes to.
+launcher.save.picker.backup_note=Backup: escolha a pasta para onde vai o backup.
+# Lower case; fills {0} in showing_only and {1} in hidden_*.
+# EN: folders
+launcher.save.picker.folders=pastas
+# Shown when a folder has no subfolders.
+# EN: No folders here.
+launcher.save.picker.empty=Nenhuma pasta aqui.
+# First row of the Import picker.
+# EN: Import from this folder
+launcher.save.picker.import_here=Importar desta pasta
+# First row of the Export picker.
+# EN: Export to this folder
+launcher.save.picker.export_here=Exportar para esta pasta
+# First row of the Back up picker.
+# EN: Back up to this folder
+launcher.save.picker.backup_here=Fazer backup nesta pasta
+# Place chip: the user's home folder.
+# EN: Home
+launcher.save.picker.home=Pessoal
+# Place chip; label only, the folder on disk is still Downloads.
+# EN: Downloads
+launcher.save.picker.downloads=Downloads
+# Place chip; label only.
+# EN: Desktop
+launcher.save.picker.desktop=Área de Trabalho
+# Place chip; label only.
+# EN: Documents
+launcher.save.picker.documents=Documentos
+# Filter chip when all files are shown.
+# EN: Showing all files
+launcher.save.picker.showing_all=Mostrando todos os arquivos
+# {0} = picker.folders, or .iso in the disc setup.
+# EN: Showing {0} only
+launcher.save.picker.showing_only=Mostrando só {0}
+# Chip opening the OS file dialog.
+# EN: System dialog...
+launcher.save.picker.system_dialog=Janela do sistema...
+# OS file dialog filter (disc setup).
+# EN: Disc images (*.iso)
+launcher.save.picker.filter_iso=Imagens de disco (*.iso)
+# OS file dialog filter.
+# EN: All files
+launcher.save.picker.filter_all=Todos os arquivos
+# Row going up one folder.
+# EN: Parent folder
+launcher.save.picker.parent=Pasta acima
+# {0} = system error text (stays in the system language).
+# EN: This folder cannot be opened: {0}.
+launcher.save.picker.cannot_open=Não é possível abrir esta pasta: {0}.
+# {0} = SDL error text.
+# EN: The system file dialog could not be opened ({0}).
+launcher.save.picker.dialog_failed=Não foi possível abrir a janela de arquivos do sistema ({0}).
+# {0} = 1, {1} = picker.folders or .iso images.
+# EN: {0} other file is hidden; only {1} are listed.
+launcher.save.picker.hidden_one={0} outro arquivo está oculto; só {1} são listadas.
+# {0} = count, {1} = picker.folders or .iso images.
+# EN: {0} other files are hidden; only {1} are listed.
+launcher.save.picker.hidden_many={0} outros arquivos estão ocultos; só {1} são listadas.
+
+# ---- FU Saves batch 2: Import summary/result and Export result (added 2026-10-14) ----
+# Between saves in a list (Back up, Export); quoted so the trailing space survives.
+# EN: ", "
+launcher.save.list_separator=", "
+# Before the last save in a list; quoted for the spaces.
+# EN: " and "
+launcher.save.list_and=" e "
+# Header of the Import summary and result screens.
+# EN: Import saves
+launcher.save.import.title=Importar saves
+# {0} = the folder (Android: its name only).
+# EN: From {0}
+launcher.save.import.from=De {0}
+# {0} = game title. English kept verbatim; the source wording repeats itself (see report).
+# EN: No saves of {0} were found in this folder. Choose a save folder such as a save folder, or the PSP/SAVEDATA folder that holds it.
+launcher.save.import.none_found=Nenhum save de {0} foi encontrado nesta pasta. Escolha uma pasta de save, ou a pasta PSP/SAVEDATA que a contém.
+# {0} = 1.
+# EN: {0} save belongs to other games and is left out.
+launcher.save.import.other_games_one={0} save é de outros jogos e fica de fora.
+# {0} = count.
+# EN: {0} saves belong to other games and are left out.
+launcher.save.import.other_games_many={0} saves são de outros jogos e ficam de fora.
+# Row label per save.
+# EN: Save to import
+launcher.save.import.incoming=Save a importar
+# Row label per save.
+# EN: Current save
+launcher.save.import.current=Save atual
+# Row value when there is no current save.
+# EN: None
+launcher.save.import.none=Nenhum
+# {0} = date and time, {1} = size.
+# EN: Saved {0}, {1}
+launcher.save.import.saved=Salvo em {0}, {1}
+# {0} = reason (from save logic, stays English).
+# EN: Cannot be imported: {0}
+launcher.save.import.cannot=Não pode ser importado: {0}
+# Button when a save is replaced.
+# EN: Replace and import
+launcher.save.import.replace_button=Substituir e importar
+# Button, one save.
+# EN: Import this save
+launcher.save.import.button_one=Importar este save
+# Button, several saves.
+# EN: Import these saves
+launcher.save.import.button_many=Importar estes saves
+# {0} = project name.
+# EN: Copies the save into {0}.
+launcher.save.import.button_help_one=Copia o save para o {0}.
+# {0} = project name.
+# EN: Copies the saves into {0}.
+launcher.save.import.button_help_many=Copia os saves para o {0}.
+# Appended to button_help_*; quoted to keep the leading space.
+# EN: " The save it replaces is not deleted: it moves to the saves folder's .backup folder."
+launcher.save.import.replace_help_one=" O save substituído não é apagado: vai para a pasta .backup da pasta de saves."
+# Appended to button_help_*; quoted to keep the leading space.
+# EN: " The saves they replace are not deleted: they move to the saves folder's .backup folder."
+launcher.save.import.replace_help_many=" Os saves substituídos não são apagados: vão para a pasta .backup da pasta de saves."
+# Button.
+# EN: Choose another folder
+launcher.save.import.choose_another=Escolher outra pasta
+# Footer.
+# EN: Back to the folders.
+launcher.save.import.choose_another_help=Volta às pastas.
+# Button.
+# EN: Cancel
+launcher.save.import.cancel=Cancelar
+# Footer.
+# EN: Import nothing.
+launcher.save.import.cancel_help=Não importa nada.
+# Result row value.
+# EN: Imported
+launcher.save.import.imported=Importado
+# Result row value.
+# EN: Imported; the old save was kept
+launcher.save.import.imported_kept=Importado; o save antigo foi mantido
+# {0} = error text.
+# EN: Not imported: {0}
+launcher.save.import.not_imported=Não importado: {0}
+# {0} = folder path.
+# EN: The replaced saves are in {0}.
+launcher.save.import.replaced_in=Os saves substituídos estão em {0}.
+# Result screen warning.
+# EN: The game reads its saves at the title screen. Restart now to load the imported save; progress since your last save is lost. If you keep playing instead, do not save before you restart: saving would replace the imported save with the game you are playing.
+launcher.save.import.restart_note=O jogo lê os saves na tela de título. Reinicie agora para carregar o save importado; o progresso desde o último save é perdido. Se continuar jogando, não salve antes de reiniciar: salvar substituiria o save importado pelo jogo atual.
+# Result button.
+# EN: Restart now
+launcher.save.import.restart=Reiniciar agora
+# Footer.
+# EN: Closes the game and starts it again at the title screen.
+launcher.save.import.restart_help=Fecha o jogo e o inicia de novo na tela de título.
+# Result button when something was imported.
+# EN: Later
+launcher.save.import.later=Depois
+# Result button when nothing was imported.
+# EN: Done
+launcher.save.import.done=Pronto
+# Footer for Later / Done.
+# EN: Back to the menu.
+launcher.save.import.done_help=Volta ao menu.
+# Header of the Export result screen.
+# EN: Export saves
+launcher.save.export.title=Exportar saves
+# Row label; value is the saves.
+# EN: Exported
+launcher.save.export.exported=Exportado
+# Row label; value is the saves.
+# EN: Encrypted for a PSP
+launcher.save.export.encrypted=Criptografado p/ PSP
+# Row label; value is the folder.
+# EN: To
+launcher.save.export.to=Em
+# Under a successful export.
+# EN: The folder is laid out like a memory stick: copy its PSP folder to the root of a PSP's memory stick, or import it from this menu on another machine.
+launcher.save.export.layout_note=A pasta segue a estrutura de um memory stick: copie a pasta PSP dela para a raiz do memory stick de um PSP, ou importe-a por este menu em outra máquina.
+# Row label; value is the error.
+# EN: Not exported
+launcher.save.export.failed=Não exportado
+# Button.
+# EN: Done
+launcher.save.export.done=Pronto
+# Footer.
+# EN: Back to the menu.
+launcher.save.export.done_help=Volta ao menu.
+
+# Save card equipment and progression
+launcher.save.pokke_points={0} Pontos Pokke
+launcher.save.guild_points={0} Pontos de Guilda
+launcher.gear.weapon=Arma
+launcher.gear.helmet=Elmo
+launcher.gear.torso=Torso
+launcher.gear.braces=Braços
+launcher.gear.waist=Cintura
+launcher.gear.feet=Pés
