@@ -1,2 +1,0 @@
-// Shared Explorer/shortcut icon for the launcher and native runtime.
-1 ICON "@CMAKE_CURRENT_SOURCE_DIR@/assets/branding/freedom-unbound-icon.ico"
