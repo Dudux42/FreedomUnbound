@@ -1,12 +1,89 @@
-# Distribution-only repository. Attach runnable files to GitHub Releases.
-# Ignore everything unless it is an approved public document/checksum.
-*
-!.gitignore
-!README.md
-!RELEASE_NOTES.md
-!WHATSNEW.md
-!DISCLAIMERS.md
-!LAN_MULTIPLAYER.md
-!MOD_CATALOG.md
-!INGAME_MOD_MANAGER.md
-!SHA256SUMS.txt
+# Nothing derived from the game belongs in this repository.
+# PortableKit's own ignores (docs/PROFILE_GUIDE.md
+# and its .gitignore) are repeated here for the port.
+
+# Disc images
+*.iso
+*.cso
+*.PBP
+*.pbp
+
+# Executables, encrypted or decrypted
+EBOOT.BIN
+EBOOT.ELF
+BOOT.BIN
+*.ELF
+*.elf
+*.prx
+*.ovl
+overlay_*.bin
+DATA.BIN
+PARAM.SFO
+
+# Derived trees and the player's files
+/generated/
+/overlays/
+/analysis/
+/game/
+/progress/
+/captures/
+/dump/
+PSP_DATA/
+SAVEDATA/
+ms0/
+
+# Saves
+*.sav
+
+# Build directories and compiler caches
+/out/
+/out-render/
+/out-release/
+/build/
+/baselines/
+cmake-build-*/
+CMakeUserPresets.json
+b*_perf/
+ccache/
+.cache/
+
+# Binary build artifacts
+*.exe
+*.dll
+*.lib
+*.obj
+*.exp
+*.iobj
+*.ipdb
+*.pdb
+*.ilk
+*.res
+*.tlog
+
+# Scratch
+*.generated
+*.tmp
+*.log
+*.bmp
+*.wav
+
+# Editor and Python
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+__pycache__/
+*.pyc
+
+# Local patch backups
+*.patch.bak*
+*.patch.new
+
+# Texture dumps: original game textures, never commit
+TextureDump/
+
+# Local scratch work and mod content (mods live in their own repo)
+scratch/
+assets/mods/

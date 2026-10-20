@@ -1,3 +1,62 @@
+# Freedom Unbound — Alpha 0.1.5
+
+19 October 2026 · Windows x64 · `v0.1.5-alpha`
+
+## Display and texture packs
+
+- **Fill** aspect ratio: widescreen, 16:10 and resized windows show a wider 3D
+  view instead of falling back to Original. Menus and other 2D screens keep
+  their shape.
+- **F10** switches the installed HD texture pack off/on, and only while a
+  texture pack is installed; without one, F10 does nothing.
+- Texture warmup: when a quest area or the village/lobby starts, textures that
+  scene used on earlier visits are prepared before drawing, within a time and
+  memory budget, with the normal loading as fallback.
+
+## Keys and in-game panels
+
+- **Equipment Wishlist (F7):** an in-game panel for the Equipment Wishlist mod,
+  with crafted-item notices. F9 from the panel switches to the mod manager.
+- **F7** is reserved only while the Equipment Wishlist mod is on, and **F10**
+  only while a texture pack is installed; otherwise you can bind them to game
+  controls. **F8** is free for your own bindings. Esc, F3, F9 and F12 stay
+  reserved.
+
+## Saves and launcher
+
+- Save-screen error messages and the **Game data** label follow the launcher
+  language, including Brazilian Portuguese.
+- The application name is **FreedomUnbound**. The standalone save editor checks
+  both executable names, `FreedomUnbound.exe` and `FreedomUniteNative.exe`, to
+  see whether the game is running.
+- Installing a mod version that is already installed now says **mod is already
+  installed**. Installing an older version asks **A newer version is already
+  installed. replace it?** with Yes/No (No is selected first). Both apply to
+  dropped ZIPs and to catalog installs.
+- As before, the **Load** button keeps sound off under the loading screen and
+  turns it back on in the village, with your volume and mute settings.
+
+## Mods
+
+- Mods currently switch on built-in features only. Texture packs and text mods
+  are fully supported, and anyone can make them; new features or game logic
+  can't be added as third-party mods yet. A plugin system that lets mods add
+  their own features is coming.
+- Shared Guild Progression writes its changes into your save, so turning the
+  mod off later doesn't undo progress you've already saved.
+- pt-BR accented letters now match the game's font in the pt-BR mod 0.2.3.
+
+## Known issues
+
+- HD textures can still pop in on first visits: the warmup currently prepares
+  2 of the 33 known village textures in time.
+- Experimental interpolation can still distort the background inside the
+  hunter's house; use 30 FPS if this happens.
+- The Gathering Map options and the Equipment Wishlist close hint are shown in
+  English only.
+- The LAN hunt is not fully tested: completed multiplayer quests, rewards and
+  save/reload on separate PCs are still pending.
+
 # Freedom Unbound — Alpha 0.1.4
 
 17 October 2026 · Windows x64 · `v0.1.4-alpha`

@@ -1,7 +1,7 @@
 # In-game Mod Manager
 
 Press **F9** in the game window to open or close the manager. Esc, the Close
-button and the controller's Back button also close it. Mouse, keyboard and
+button and the controller's cancel button also close it. Mouse, keyboard and
 controller navigation use the launcher's existing UI controls.
 
 The manager lists installed mods, versions, descriptions, enabled states and
@@ -27,7 +27,7 @@ mining, bug-catching, regular gathering and carving checkboxes, saved locally
 and applied immediately. Further mod settings will be designed with the owner.
 The manager is
 built into the launcher and does not need a separate mod ZIP. Existing mod
-names and packages are unchanged; [official names](MOD_OFFICIAL_NAMES.md)
+names and packages are unchanged; official names
 roll out when each mod next receives an update.
 
 ## Implementation

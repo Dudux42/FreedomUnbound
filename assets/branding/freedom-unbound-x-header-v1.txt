@@ -1,0 +1,2 @@
+Created with the built-in image generation tool using freedom-unbound-logo-v2.png and assets/launcher/modern-landscape.png as references.
+Prompt: Create a wide 3:1 Freedom Unbound X profile header. Preserve the silver and emerald official logo and exact lettering, with the complete logo slightly right of center. Adapt the launcher moonlit alpine lake, snowy peaks, evergreen forest and warm distant village into a panoramic background. Leave the lower-left quiet for the profile avatar. No extra text, version number, UI or watermark.
