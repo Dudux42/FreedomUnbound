@@ -13,6 +13,10 @@ launcher.home.used_where_it_is=(usada onde está)
 launcher.lang.en=English
 # launcher_home.cpp, tooltip of the Brazilian flag (switches to Português (Brasil))
 launcher.lang.pt_br=Português (Brasil)
+# launcher_home.cpp, flag tooltip help line (UK flag)
+launcher.lang.en_help=Muda o launcher para inglês.
+# launcher_home.cpp, flag tooltip help line (Brazilian flag)
+launcher.lang.pt_br_help=Muda o launcher para português do Brasil.
 # launcher_home.cpp:45, label
 launcher.home.none=Nenhuma
 # launcher_home.cpp:74, label
@@ -408,9 +412,9 @@ launcher.controls.invert_mouse_vertically=Inverter mouse na vertical
 # menu.cpp:779, help text
 launcher.controls.l3_r3_and_guide_are=L3, R3 e Guide ficam reservados para o menu (L3+R3).
 # menu.cpp:780, help text
-launcher.controls.esc_f3_f10_and_f12=Esc, F3, F7, F8, F9, F10 e F12 ficam reservados para o menu, a sobreposição de desempenho, a lista de desejos, a árvore de armas, o gerenciador de mods, a troca de texturas e as capturas.
 launcher.controls.reserved_keys=Esc, F3, F9 e F12 ficam reservadas para o menu, a sobreposição de desempenho, o gerenciador de mods e as capturas de tela.
 launcher.controls.reserved_f7=F7 fica reservada para o mod Lista de Desejos de Equipamentos enquanto ele estiver ligado.
+launcher.controls.reserved_f8=F8 fica reservada para o mod Árvore de Melhoria de Armas enquanto ele estiver ligado.
 launcher.controls.reserved_f10=F10 fica reservada para alternar texturas enquanto houver um pacote de texturas instalado.
 # menu.cpp:798, info row
 launcher.controls.note=Nota
@@ -672,7 +676,7 @@ launcher.mods.size_value={0}, {1} arquivos
 launcher.mods.size=Tamanho
 # mods_page.cpp, install review: {0} is the installed version
 launcher.mods.replaces_version=Isto substitui a cópia instalada (v{0}).
-launcher.mods.already_installed=O mod já está instalado
+launcher.mods.already_installed=Este mod já está instalado.
 launcher.mods.confirm_downgrade=Uma versão mais recente já está instalada. Substituir?
 # mods_page.cpp:232, paragraph
 launcher.mods.this_replaces_the_installed_copy=Isto substitui a cópia instalada.
@@ -728,6 +732,10 @@ launcher.mods.this_zip_has_no_mod=Este zip não tem mod.json, então recebe o no
 launcher.mods.this_mod_changes_your_save=Este mod altera seu save. Enquanto estiver ativo, seu save passa por backup antes de o jogo começar com outro conjunto de mods.
 # mods_page.cpp:236, button row
 launcher.mods.install=Instalar
+# equipment_wishlist_ui.cpp, control hint at the smithy
+wishlist.hint.pin=Fixar materiais
+# equipment_wishlist_ui.cpp, control hint at the smithy
+wishlist.hint.unpin=Remover fixação
 # mods_page.cpp:245, button row
 launcher.mods.cancel=Cancelar
 # mods_page.cpp:249, button row

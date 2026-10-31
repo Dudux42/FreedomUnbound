@@ -3,12 +3,17 @@
 //   cl /std:c++20 /EHsc /I portablekit/host tests/auto_backup_tests.cpp portablekit/host/save_data/auto_backup.cpp
 //   g++ -std=c++20 -I portablekit/host tests/auto_backup_tests.cpp portablekit/host/save_data/auto_backup.cpp
 // Works in a fresh temporary folder; never touches real saves.
-#include <random>
 #include "save_data/auto_backup.hpp"
 
 #include <chrono>
+#include <ctime>
 #include <cstdio>
 #include <cstdlib>
+#if defined(_WIN32)
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -41,12 +46,23 @@ std::string read(const fs::path &file) {
     return {std::istreambuf_iterator<char>(in), {}};
 }
 
+// Unique per process (not random), so parallel ctest runs cannot share a folder
+// and a failed run's leftovers are found and removed by the next one.
+std::string process_tag() {
+#if defined(_WIN32)
+    return std::to_string(_getpid());
+#else
+    return std::to_string(getpid());
+#endif
+}
+
 struct Sandbox {
     fs::path root;
     ab::Config config;
     explicit Sandbox(const char *name) {
-        root = fs::temp_directory_path() / ("fusaves-tests-" + std::to_string(std::random_device{}()) + "-" + std::string(name));
-        fs::remove_all(root);
+        root = fs::temp_directory_path() / ("fusaves-tests-" + process_tag() + "-" + std::string(name));
+        std::error_code ec;
+        fs::remove_all(root, ec);
         // <data>/ms0/PSP/SAVEDATA/ULUS10391, with an accented data folder name.
         const fs::path stick = root / fs::path(u8"Dados do Usu\u00e1rio") / "ms0";
         config = ab::make_config(stick, "ULUS10391", "save-preview/ULUS10391.txt", 5);
@@ -63,8 +79,15 @@ struct Sandbox {
 };
 
 clock_type::time_point at(int seconds) {
-    // A fixed local day, a second apart per step.
-    return clock_type::from_time_t(1'760'400'000) + std::chrono::seconds(seconds);
+    // A fixed instant, a second apart per step, at local noon so that no step
+    // used here (under 10 minutes) crosses midnight in any time zone's stamp.
+    std::tm tm{};
+    tm.tm_year = 2026 - 1900;
+    tm.tm_mon = 9;
+    tm.tm_mday = 14;
+    tm.tm_hour = 12;
+    tm.tm_isdst = -1;
+    return clock_type::from_time_t(std::mktime(&tm)) + std::chrono::seconds(seconds);
 }
 
 void test_stamps() {
@@ -73,7 +96,7 @@ void test_stamps() {
     CHECK(!ab::is_stamp_name("2026101-0017055"));
     CHECK(!ab::is_stamp_name("notes"));
     CHECK(ab::stamp_for_display("20261014-001705") == "2026-10-14 00:17:05");
-    CHECK(ab::is_stamp_name(ab::stamp_name(clock_type::now())));
+    CHECK(ab::is_stamp_name(ab::stamp_name(at(0))));
 }
 
 void test_config() {

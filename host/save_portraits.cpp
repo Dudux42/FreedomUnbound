@@ -1,8 +1,10 @@
 #include "save_portraits.hpp"
+#include "portrait_file.hpp"
 #include "equipment_preview.hpp"
 #include "direct_load.hpp"
 #include "modern_camera.hpp"
 #include "equipment_wishlist.hpp"
+#include "weapon_tree.hpp"
 #include "hunter_model.hpp"
 #include "model_materials.hpp"
 #include "profile.hpp"
@@ -145,6 +147,7 @@ void frame(psprecomp::Runtime &runtime) {
     direct_load::frame(runtime);
     if(modern_camera::driver.frame) modern_camera::driver.frame(runtime);
     wishlist::frame(runtime.memory().aot_fast_view());
+    weapon_tree::frame(runtime.memory().aot_fast_view());
 #if defined(PORTABLEKIT_HAS_RENDERER)
     const auto &m=runtime.memory();
     if(capturing) {
@@ -217,12 +220,10 @@ void draw_save_portrait(unsigned slot,const HunterSummary &hunter,float x,float 
         if((*it)->Status==ImTextureStatus_Destroyed) { ImGui::UnregisterUserTexture(*it); delete *it; it=retired.erase(it); }
         else ++it;
     }
-    auto &c=cache[slot]; auto path=picture(slot,hunter.appearance_key);
+    auto &c=cache[slot];
+    // Exact key first, else this slot's newest stale portrait, else placeholder.
+    auto path=portrait_file::choose(preview_file(savedata::memory_stick()).parent_path()/"portraits",slot,hunter.appearance_key,model_enabled());
     std::error_code ec;
-    if(model_enabled()) {
-        auto mesh=path; mesh.replace_extension(".fum");
-        if(std::filesystem::is_regular_file(mesh,ec)) path=mesh;
-    }
     const auto stamp=std::filesystem::last_write_time(path,ec);
     if(c.file!=path || (!ec && c.stamp!=stamp)) {
         if(c.texture) { c.texture->WantDestroyNextFrame=true; retired.push_back(c.texture); }

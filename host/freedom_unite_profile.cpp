@@ -25,22 +25,38 @@
 #include "monster_hp.hpp"
 #include "modern_camera.hpp"
 #include "shared_progression.hpp"
+#include "solo_guildhall_scaling.hpp"
 #include "key_quests.hpp"
 #include "return_timer.hpp"
 #include "buff_icons.hpp"
 #include "equipment_wishlist.hpp"
+#include "weapon_tree.hpp"
 #include "controller_prompts.hpp"
 #include "native_prompts.hpp"
 #include "wishlist_scene.hpp"
 #include "mods_used.hpp"
 
 #include <cstdlib>
+#include <cstdio>
 #include "psprecomp/guest_memory.hpp"
+#include "gpu/frame_interpolation.hpp"
 #include "gpu/ge_state.hpp"
 
 namespace portablekit {
 
 namespace {
+
+// Frame interpolation's cut thresholds: the framework's defaults (measured
+// on Portable 3rd) except the own-motion guard. Freedom Unite draws repeated
+// scenery meshes (the house's posts and beams) closer together than the
+// default 120 units, so a mismatched pair of them passed the guard. 60 is
+// about twice the largest own motion per 30 FPS game frame expected of the
+// hunter (a sprint or dodge); check it against the "kept up to" figure of
+// MHFU_TRACE_INTERPOLATION before shipping.
+const gpu::interpolation::CutThresholds kInterpolationThresholds = [] {
+    gpu::interpolation::CutThresholds thresholds{};
+    return thresholds;
+}();
 
 std::uint64_t texture_scene(const psprecomp::GuestMemory &memory) {
     // The verified village/lobby overlay shares one warmup group. It does not
@@ -132,6 +148,26 @@ void record_save_from_guest(psprecomp::GuestMemory &memory, const std::filesyste
     const auto preview=fu::decode_save_preview(data,table);
     fu::portrait_save_seen(preview);
     fu::direct_load::save_seen(preview);
+    // FU Saves, 0.1.7 debug: Guild Card award bits. Off unless MHFU_DEBUG_AWARDS=1.
+    // Logs only set bit numbers and a count; never bytes, names or keys. In memory only.
+    if (const char *dbg = std::getenv("MHFU_DEBUG_AWARDS"); dbg && dbg[0] == '1' && dbg[1] == '\0') {
+        if (const auto plain = fu::decode_save_data(data, table)) {
+            constexpr std::size_t kStride = 0x6b100, kAwards = 0x68400, kAwardBytes = 6;
+            for (std::size_t slot = 0; slot < 3; ++slot) {
+                const std::size_t off = slot * kStride + kAwards;
+                if (off + kAwardBytes > plain->size()) break;
+                std::string bits;
+                unsigned count = 0;
+                for (std::size_t bit = 0; bit < kAwardBytes * 8; ++bit) {
+                    if (((*plain)[off + bit / 8] >> (bit % 8)) & 1u) {
+                        bits += (count ? "," : "") + std::to_string(bit);
+                        ++count;
+                    }
+                }
+                std::fprintf(stderr, "[FU Saves] slot %zu awards bits: [%s] count: %u\n", slot, bits.c_str(), count);
+            }
+        }
+    }
 }
 
 // English for a string a text mod translated (fu_text_mod.cpp); otherwise the same text.
@@ -149,6 +185,8 @@ void overlays_draw() { fu::mod_overlay::draw(); }
 // binding works. Follows enable/disable at runtime (mod_overlay activate/deactivate).
 [[maybe_unused]] const bool mod_keys_claimed = [] {
     portablekit::input::claim_key(64 /* F7 */, [] { return fu::mod_overlay::is_active("equipment-wishlist"); });
+    // F8 likewise belongs to the Weapon Upgrade Tree mod while it is on.
+    portablekit::input::claim_key(65 /* F8 */, [] { return fu::mod_overlay::is_active("weapon-upgrade-tree"); });
     return true;
 }();
 bool transform_game_draw(const gpu::DrawCall &call,const psprecomp::GuestMemory &memory,std::vector<gpu::DrawCall> &out) {
@@ -205,10 +243,12 @@ const GameProfile &game() {
     fu::monster_hp::register_renderer();
     fu::modern_camera::register_mod();
     fu::shared_progression::register_mod();
+    fu::solo_guildhall_scaling::register_mod();
     fu::key_quests::register_renderer();
     fu::return_timer::register_renderer();
     fu::buff_icons::register_renderer();
     fu::wishlist::register_renderer();
+    fu::weapon_tree::register_renderer();
     fu::controller_prompts::register_renderer();
     static const GameProfile profile{
         .app_name = "FreedomUnbound",
@@ -264,6 +304,7 @@ const GameProfile &game() {
         // Fill: the renderer narrows the game's perspective projections to the
         // window's shape (gpu::set_view_aspect), so no guest memory is touched.
         .view_aspect_frame = [](psprecomp::Runtime &, float aspect) { gpu::set_view_aspect(aspect); },
+        .interpolation_thresholds = &kInterpolationThresholds,
         .frame_vblanks = fu::native_60_requested() ? 1u : 2u,
         .texture_scene = texture_scene,
 
@@ -275,6 +316,7 @@ const GameProfile &game() {
         .launcher_home = true,
         .launcher_mods_page = fu::show_mods_page,
         .game_mods_frame = fu::game_mods_frame,
+        .game_tool_frame = fu::weapon_tree::panel,
         .game_wishlist_frame = fu::wishlist::panel,
         .launcher_cheats_page = fu::show_cheats_page,
         .menu_cheats_rows = fu::draw_cheat_rows,

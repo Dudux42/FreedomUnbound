@@ -70,10 +70,12 @@ set(profile_sources host/freedom_unite_profile.cpp host/timing_probe.cpp host/na
     host/cheats.cpp host/cheats_ui.cpp host/mod_overlay.cpp host/damage_events.cpp host/damage_numbers.cpp
     host/gathering_nodes.cpp host/gathering_nodes_ui.cpp
     host/gathering_map.cpp host/gathering_map_ui.cpp
-    host/monster_hp.cpp host/monster_hp_ui.cpp host/modern_camera.cpp host/modern_camera_mod.cpp
+    host/monster_hp.cpp host/monster_hp_ui.cpp host/modern_camera.cpp host/camera_aim.cpp host/modern_camera_mod.cpp
     host/shared_progression.cpp host/shared_progression_mod.cpp host/key_quests.cpp host/key_quests_ui.cpp
+    host/solo_guildhall_scaling.cpp host/solo_guildhall_scaling_mod.cpp
     host/return_timer.cpp host/return_timer_ui.cpp
     host/buff_icons.cpp host/buff_icons_ui.cpp
+    host/weapon_tree.cpp host/weapon_tree_ui.cpp
     host/equipment_wishlist_model.cpp host/equipment_wishlist.cpp host/equipment_wishlist_ui.cpp
     host/controller_prompts.cpp host/native_prompts.cpp host/native_prompt_draw.cpp
     host/launcher_art.cpp host/save_preview.cpp host/save_preview_ui.cpp host/equipment_preview.cpp host/save_portraits.cpp host/direct_load.cpp host/hunter_model.cpp host/model_materials.cpp host/fu_host_text.cpp host/fu_text_table.cpp host/fu_text_mod.cpp host/game_log.cpp host/mods_used.cpp
@@ -406,7 +408,12 @@ if(NOT MHFU_NO_CORPUS)
             "${hp_input}" "${hp_copy}" "${CMAKE_CURRENT_SOURCE_DIR}/host/monster_hp.hpp"
         DEPENDS "${hp_input}" scripts/instrument-monster-hp.py host/monster_hp.hpp VERBATIM)
     list(REMOVE_ITEM hp_sources "${hp_input}")
-    list(APPEND hp_sources "${hp_copy}")
+    set(solo_hp_copy "${CMAKE_CURRENT_BINARY_DIR}/solo_guildhall_scaling/game26.cpp")
+    add_custom_command(OUTPUT "${solo_hp_copy}"
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/instrument-solo-guildhall-scaling.py"
+            "${hp_copy}" "${solo_hp_copy}" "${CMAKE_CURRENT_SOURCE_DIR}/host/solo_guildhall_scaling.hpp"
+        DEPENDS "${hp_copy}" scripts/instrument-solo-guildhall-scaling.py host/solo_guildhall_scaling.hpp VERBATIM)
+    list(APPEND hp_sources "${solo_hp_copy}")
     set_property(TARGET ${hp_target} PROPERTY SOURCES "${hp_sources}")
     set(hp_lifecycle_input "${CMAKE_CURRENT_BINARY_DIR}/cheats/main26.cpp")
     set(hp_lifecycle_copy "${CMAKE_CURRENT_BINARY_DIR}/monster_hp/main26.cpp")
@@ -432,6 +439,26 @@ if(NOT MHFU_NO_CORPUS)
         DEPENDS "${camera_input}" scripts/instrument-modern-camera.py host/modern_camera.hpp VERBATIM)
     list(REMOVE_ITEM damage_main_sources "${camera_input}")
     list(APPEND damage_main_sources "${camera_copy}")
+    # camera_aim (H2): bow and bowgun joins in the USA game_task overlay only.
+    set(aim_target overlay_ovl09A5F300_game_task_36BD79C16BF70197)
+    get_target_property(aim_sources ${aim_target} SOURCES)
+    foreach(aim_pair IN ITEMS "0085;bow" "0017;bowgun")
+        list(GET aim_pair 0 aim_unit)
+        list(GET aim_pair 1 aim_site)
+        set(aim_input "${CMAKE_CURRENT_SOURCE_DIR}/overlays/ovl09A5F300_game_task_36BD79C16BF70197/generated_unit_${aim_unit}.cpp")
+        set(aim_copy "${CMAKE_CURRENT_BINARY_DIR}/camera_aim/game${aim_unit}.cpp")
+        list(FIND aim_sources "${aim_input}" aim_index)
+        if(aim_index EQUAL -1)
+            message(FATAL_ERROR "Camera aim requires the supported USA game_task unit ${aim_unit}")
+        endif()
+        add_custom_command(OUTPUT "${aim_copy}"
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/instrument-camera-aim.py"
+                "${aim_input}" "${aim_copy}" "${CMAKE_CURRENT_SOURCE_DIR}/host/camera_aim.hpp" ${aim_site}
+            DEPENDS "${aim_input}" scripts/instrument-camera-aim.py host/camera_aim.hpp VERBATIM)
+        list(REMOVE_ITEM aim_sources "${aim_input}")
+        list(APPEND aim_sources "${aim_copy}")
+    endforeach()
+    set_property(TARGET ${aim_target} PROPERTY SOURCES "${aim_sources}")
     set(gathering_input "${CMAKE_CURRENT_SOURCE_DIR}/generated/generated_unit_0016.cpp")
     if(MHFU_NATIVE_60_EXPERIMENT)
         set(gathering_input "${CMAKE_CURRENT_BINARY_DIR}/native_60/generated_unit_0016.cpp")
@@ -517,11 +544,16 @@ if(PSPRECOMP_BUILD_TESTS)
     add_test(NAME mhfu_gathering_map_tests COMMAND mhfu_gathering_map_tests)
     add_test(NAME mhfu_gathering_map_instrumentation_tests COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_gathering_map_instrumentation.py")
+    add_executable(mhfu_weapon_tree_tests tests/weapon_tree_tests.cpp host/weapon_tree.cpp)
+    target_compile_features(mhfu_weapon_tree_tests PRIVATE cxx_std_20)
+    target_include_directories(mhfu_weapon_tree_tests PRIVATE host)
+    target_link_libraries(mhfu_weapon_tree_tests PRIVATE psprecomp_core)
+    add_test(NAME mhfu_weapon_tree_tests COMMAND mhfu_weapon_tree_tests)
     add_executable(mhfu_equipment_wishlist_tests tests/equipment_wishlist_tests.cpp host/equipment_wishlist_model.cpp)
     target_compile_features(mhfu_equipment_wishlist_tests PRIVATE cxx_std_20)
     target_include_directories(mhfu_equipment_wishlist_tests PRIVATE host)
     add_test(NAME mhfu_equipment_wishlist_tests COMMAND mhfu_equipment_wishlist_tests)
-    add_executable(mhfu_equipment_wishlist_native_tests tests/equipment_wishlist_native_tests.cpp host/equipment_wishlist_model.cpp host/equipment_wishlist.cpp host/fu_text_table.cpp)
+    add_executable(mhfu_equipment_wishlist_native_tests tests/equipment_wishlist_native_tests.cpp host/equipment_wishlist_model.cpp host/equipment_wishlist.cpp host/weapon_tree.cpp host/fu_text_table.cpp)
     target_compile_features(mhfu_equipment_wishlist_native_tests PRIVATE cxx_std_20)
     target_include_directories(mhfu_equipment_wishlist_native_tests PRIVATE host portablekit/host)
     target_link_libraries(mhfu_equipment_wishlist_native_tests PRIVATE psprecomp_core)
@@ -550,18 +582,29 @@ if(PSPRECOMP_BUILD_TESTS)
     add_test(NAME mhfu_key_quests_instrumentation_tests COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_key_quests_instrumentation.py")
     add_executable(mhfu_shared_progression_tests tests/shared_progression_tests.cpp host/shared_progression.cpp)
+    add_executable(mhfu_solo_guildhall_scaling_tests tests/solo_guildhall_scaling_tests.cpp host/solo_guildhall_scaling.cpp)
+    target_compile_features(mhfu_solo_guildhall_scaling_tests PRIVATE cxx_std_20)
+    target_include_directories(mhfu_solo_guildhall_scaling_tests PRIVATE host)
+    target_link_libraries(mhfu_solo_guildhall_scaling_tests PRIVATE psprecomp_core)
+    add_test(NAME mhfu_solo_guildhall_scaling_tests COMMAND mhfu_solo_guildhall_scaling_tests)
     target_compile_features(mhfu_shared_progression_tests PRIVATE cxx_std_20)
     target_include_directories(mhfu_shared_progression_tests PRIVATE host)
     target_link_libraries(mhfu_shared_progression_tests PRIVATE psprecomp_core)
     add_test(NAME mhfu_shared_progression_tests COMMAND mhfu_shared_progression_tests)
     add_test(NAME mhfu_shared_progression_instrumentation_tests COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_shared_progression_instrumentation.py")
-    add_executable(mhfu_modern_camera_tests tests/modern_camera_tests.cpp host/modern_camera.cpp
+    add_executable(mhfu_modern_camera_tests tests/modern_camera_tests.cpp host/modern_camera.cpp host/camera_aim.cpp host/camera_aim.cpp host/camera_aim.cpp
         portablekit/host/camera/camera_input.cpp)
     target_compile_features(mhfu_modern_camera_tests PRIVATE cxx_std_20)
     target_include_directories(mhfu_modern_camera_tests PRIVATE host portablekit/host)
     target_link_libraries(mhfu_modern_camera_tests PRIVATE psprecomp_core)
     add_test(NAME mhfu_modern_camera_tests COMMAND mhfu_modern_camera_tests)
+    add_executable(mhfu_camera_aim_tests tests/camera_aim_tests.cpp)
+    target_compile_features(mhfu_camera_aim_tests PRIVATE cxx_std_20)
+    target_include_directories(mhfu_camera_aim_tests PRIVATE host)
+    add_test(NAME mhfu_camera_aim_tests COMMAND mhfu_camera_aim_tests)
+    add_test(NAME mhfu_camera_aim_instrumentation_tests COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_camera_aim_instrumentation.py")
     add_test(NAME mhfu_modern_camera_instrumentation_tests COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_modern_camera_instrumentation.py")
     add_executable(mhfu_monster_hp_tests tests/monster_hp_tests.cpp host/monster_hp.cpp)
@@ -665,6 +708,11 @@ if(PSPRECOMP_BUILD_TESTS)
     target_compile_features(mhfu_mods_used_tests PRIVATE cxx_std_20)
     target_include_directories(mhfu_mods_used_tests PRIVATE host)
     add_test(NAME mhfu_mods_used_tests COMMAND mhfu_mods_used_tests)
+    # FU Saves, 0.1.6: launcher portrait falls back to the slot's newest stale file.
+    add_executable(mhfu_portrait_fallback_tests tests/portrait_fallback_tests.cpp)
+    target_compile_features(mhfu_portrait_fallback_tests PRIVATE cxx_std_20)
+    target_include_directories(mhfu_portrait_fallback_tests PRIVATE host)
+    add_test(NAME mhfu_portrait_fallback_tests COMMAND mhfu_portrait_fallback_tests)
     add_test(NAME mhfu_native_instrumentation_tests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_instrumentation.py")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)

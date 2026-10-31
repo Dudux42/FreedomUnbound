@@ -281,7 +281,7 @@ Controller Prompts (`controller-prompts`, hook `controller_prompts`) supplies
 live trigger caps through `host/controller_prompts.hpp` and the wishlist hint
 provider. It uses the launcher's last input device, current SDL controller type
 and current keyboard bindings. ExtraLeft/ExtraRight host actions are configurable
-in Controls and merge with analog triggers before dispatch. Default keys F6/F7
+in Controls and merge with analog triggers before dispatch. Default keys F6/F5
 do not press PSP shoulders. Future overlays should request an action label/cap
 from this provider instead of hard-coding combined ZL/LT/L2 labels. See
 the Controller Prompts guide in [Freedom Unbound Mods](https://github.com/Dudux42/FreedomUnboundmods) for scope and device-translation limitations.

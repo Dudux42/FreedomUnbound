@@ -333,7 +333,9 @@ function Package-Game {
         Copy-Item -LiteralPath (Join-Path $workspace $guide) -Destination $package
     }
     Copy-Item -LiteralPath (Join-Path $workspace 'WHATSNEW.md') -Destination $package
-    Copy-Item -LiteralPath (Join-Path $workspace 'TEST_BUILD_CHANGES.md') -Destination $package
+    # Test-build notes exist only in the private test repo; the public source tree has none.
+    $testChanges = Join-Path $workspace 'TEST_BUILD_CHANGES.md'
+    if ($TestData -and (Test-Path -LiteralPath $testChanges -PathType Leaf)) { Copy-Item -LiteralPath $testChanges -Destination $package }
     # Bundled launcher/host translations: <program folder>\lang\<language>\host.txt (host/fu_host_text.cpp).
     $langSource = Join-Path $workspace 'lang'
     if (Test-Path -LiteralPath $langSource -PathType Container) { Copy-Item -LiteralPath $langSource -Destination (Join-Path $package 'lang') -Recurse }
@@ -365,9 +367,13 @@ full campaign coverage and multiplayer have not been verified.
 Native gameplay is 30 FPS. Higher renderer rates are interpolation.
 Read the bundled tester guide for acceptance coverage and known issues.
 
-Alpha 0.1.5 adds the Fill aspect ratio, the F7 Equipment Wishlist panel while
-its mod is enabled and translated Saves screen messages. F9 opens the in-game
-mod manager; F10 toggles an installed texture pack and does nothing without one.
+Alpha 0.1.6 improves the Equipment Wishlist (items past the first smithy page
+can be pinned), shows a hunter portrait on every save card even when its
+picture is out of date, lets keyboard and gamepad reach each save's Load button,
+fixes backups made before a save import, and adds launcher text in Brazilian
+Portuguese. It adds hooks for the Weapon Upgrade Tree (F8 while on) and Solo
+Guildhall Scaling mods, which are separate downloads. F9 opens the in-game mod
+manager; F10 toggles an installed texture pack and does nothing without one.
 LAN Host/Join is available before boot.
 Read RELEASE_NOTES.md, MOD_CATALOG.md, INGAME_MOD_MANAGER.md and LAN_MULTIPLAYER.md.
 Mod packs and the standalone save editor are separate, not bundled.

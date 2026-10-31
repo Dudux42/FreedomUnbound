@@ -6,6 +6,11 @@
 #include "save_data/launcher_import.hpp"
 #include "save_data/param_sfo.hpp"
 
+#if defined(_WIN32)
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -50,12 +55,22 @@ void make_save(const fs::path &folder, const std::string &bin) {
     write(folder / "MHP2NDG.BIN", bin);
 }
 
+std::string process_tag() {
+#if defined(_WIN32)
+    return std::to_string(_getpid());
+#else
+    return std::to_string(getpid());
+#endif
+}
+
 struct Sandbox {
     fs::path root;
     ab::Config config;
     explicit Sandbox(const char *name) {
-        root = fs::temp_directory_path() / ("fusaves-import-tests-" + std::string(name));
-        fs::remove_all(root);
+        // Unique per process, so parallel ctest runs cannot share a folder.
+        root = fs::temp_directory_path() / ("fusaves-import-tests-" + process_tag() + "-" + std::string(name));
+        std::error_code ec;
+        fs::remove_all(root, ec);
         config = ab::make_config(root / "data" / "ms0", "ULUS10391", "save-preview/ULUS10391.txt", 5);
     }
     ~Sandbox() {
@@ -110,7 +125,7 @@ void test_import_backs_up_first_and_keeps_dot_backup() {
     const fs::path incoming = box.root / "psp" / "ULUS10391";
     make_save(incoming, "from psp");
     const li::Check check = li::check_folder(incoming, "ULUS10391", "MHP2NDG.BIN");
-    const li::Result r = li::import_with_backup(box.config, check, std::chrono::system_clock::now(), box.importer());
+    const li::Result r = li::import_with_backup(box.config, check, std::chrono::system_clock::from_time_t(1'760'400'000), box.importer());
     CHECK(r.ok);
     CHECK(r.backup.ok && !r.backup.skipped);
     CHECK(read(r.backup.folder / "ULUS10391" / "MHP2NDG.BIN") == "current");
@@ -118,12 +133,30 @@ void test_import_backs_up_first_and_keeps_dot_backup() {
     CHECK(read(r.replaced / "MHP2NDG.BIN") == "current");
 }
 
+// FU Saves 0.1.6: an import makes a new SaveBackups entry even when the save
+// is unchanged since the newest backup (the pre-game backup usually is).
+void test_import_backs_up_unchanged_save() {
+    Sandbox box("import-unchanged");
+    make_save(box.config.save_folder, "current");
+    const auto t0 = std::chrono::system_clock::from_time_t(1'760'400'000);
+    CHECK(ab::back_up(box.config, t0).ok);
+    CHECK(ab::list(box.config).size() == 1);
+    const fs::path incoming = box.root / "psp" / "ULUS10391";
+    make_save(incoming, "from psp");
+    const li::Result r = li::import_with_backup(box.config, li::check_folder(incoming, "ULUS10391", "MHP2NDG.BIN"),
+                                                t0 + std::chrono::seconds(60), box.importer());
+    CHECK(r.ok && r.backup.ok && !r.backup.skipped);
+    CHECK(ab::list(box.config).size() == 2);
+    CHECK(read(ab::list(box.config).front().save(box.config) / "MHP2NDG.BIN") == "current");
+    CHECK(read(box.config.save_folder / "MHP2NDG.BIN") == "from psp");
+}
+
 void test_import_without_current_save() {
     Sandbox box("import-empty");
     const fs::path incoming = box.root / "psp" / "ULUS10391";
     make_save(incoming, "from psp");
     const li::Result r = li::import_with_backup(box.config, li::check_folder(incoming, "ULUS10391", "MHP2NDG.BIN"),
-                                                std::chrono::system_clock::now(), box.importer());
+                                                std::chrono::system_clock::from_time_t(1'760'400'000), box.importer());
     CHECK(r.ok && r.backup.skipped && r.replaced.empty());
     CHECK(read(box.config.save_folder / "MHP2NDG.BIN") == "from psp");
 }
@@ -134,7 +167,7 @@ void test_refused_check_copies_nothing() {
     bool called = false;
     const li::Result r = li::import_with_backup(
         box.config, li::check_folder(box.root / "nothing", "ULUS10391", "MHP2NDG.BIN"),
-        std::chrono::system_clock::now(), [&](const fs::path &) {
+        std::chrono::system_clock::from_time_t(1'760'400'000), [&](const fs::path &) {
             called = true;
             return li::Imported{};
         });
@@ -147,6 +180,7 @@ void test_refused_check_copies_nothing() {
 int main() {
     test_check();
     test_import_backs_up_first_and_keeps_dot_backup();
+    test_import_backs_up_unchanged_save();
     test_import_without_current_save();
     test_refused_check_copies_nothing();
     if (failures == 0) std::cout << "launcher_import_tests: all passed\n";

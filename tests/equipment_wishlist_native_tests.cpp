@@ -54,6 +54,12 @@ int main(int argc,char **argv) {
     set_enabled(false);check(triggers(false,true,true)==0 && !view().smithy);
     set_enabled(true,directory);capture_menu(c,v); // Restore actual menu pointer below.
     c.gpr[4]=menu;capture_menu(c,v);frame(v);check(view().pinned);
+    // Page two: menu+24 holds the visible page's row count, menu+64 the whole-list index.
+    text(name+3072,"Velocidrome Helm");m.store32(rows+16+4,name+3072);m.store16(rows+16+10,0);m.store16(rows+16+12,2);m.store16(rows+16+14,2);
+    constexpr unsigned page_two=0x0893B938+2*26;m.store8(page_two,0);m.store16(page_two+2,2);m.store16(page_two+4,44);m.store16(page_two+6,1);
+    m.store32(menu+64,1);capture_menu(c,v);frame(v);
+    check(view().smithy && view().selected && view().selected->name=="Velocidrome Helm" && !view().pinned);
+    m.store32(menu+64,0);capture_menu(c,v);frame(v);check(view().pinned);
     // Quest-entry inventory is a baseline, then the pickup generates both notices.
     m.store32(0x09AA5770,0);m.store32(0x09A6B154,0x106005F7);m.store8(state+46,2);frame(v);
     check(view().quest && !view().smithy && view().notices.empty());

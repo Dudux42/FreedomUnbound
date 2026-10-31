@@ -1,3 +1,46 @@
+# Freedom Unbound — Alpha 0.1.6
+
+31 October 2026 · Windows x64 · `v0.1.6-alpha`
+
+## Equipment Wishlist and mods
+
+- **Equipment Wishlist:** you can now pin equipment from any page of the smithy
+  list, not only the first. The smithy's **Pin materials** and **Remove pin**
+  hints follow the launcher language.
+- **Mod support:** this release includes the support needed for the **Weapon
+  Upgrade Tree** and **Solo Guildhall Scaling** mods. Both are separate
+  downloads, released shortly after 0.1.6. While Weapon Upgrade Tree is on,
+  **F8** is reserved for it.
+- Camera Unbound stays at version 0.3.0 for this release.
+
+## Saves and launcher
+
+- **Save portraits:** each save card always shows a portrait. If a hunter's
+  portrait is out of date, the most recent one for that slot is shown; if
+  there is none, a placeholder appears.
+- **Load** buttons on save cards can now be reached and highlighted with the
+  keyboard and gamepad.
+- **Mods page:** a mod's details now open at the top, on its name and
+  description.
+- Importing a save now always makes a fresh backup of your current save first,
+  even if it hasn't changed since the last backup. Automatic backups are more
+  reliable.
+- **Brazilian Portuguese:** new and corrected launcher text, including the
+  language flag tooltips, the smithy hints and the reserved-key notes.
+
+## Known issues
+
+- In the equipment shop preview, weapon and armour models can draw behind the
+  hunter.
+- Some PCs may see short stutters with brief sound dropouts. We're
+  investigating.
+- Experimental interpolation can distort the background inside the hunter's
+  house; use 30 FPS if this happens.
+- HD textures can still pop in on first visits.
+- The Gathering Map options are shown in English only.
+- The LAN hunt is not fully tested: completed multiplayer quests, rewards and
+  save/reload on separate PCs are still pending.
+
 # Freedom Unbound — Alpha 0.1.5
 
 19 October 2026 · Windows x64 · `v0.1.5-alpha`

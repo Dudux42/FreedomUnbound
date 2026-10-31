@@ -1,4 +1,5 @@
 #include "equipment_wishlist.hpp"
+#include "weapon_tree.hpp"
 #include "fu_text_table.hpp"
 #include "install/user_data.hpp"
 #include "psprecomp/runtime.hpp"
@@ -94,8 +95,11 @@ void identify(const psprecomp::AotFastView &m,unsigned state) {
 std::optional<Recipe> selected(const psprecomp::AotFastView &m) {
     if(!valid(menu,112) || now_ns()-menu_time>200000000)return {};
     if(m.aot_load8(menu+32)!=2)return {}; // Native smithy, excluding the equipment shop.
-    const auto count=m.aot_load32(menu+24),index=m.aot_load32(menu+64),rows=m.aot_load32(menu+16);
-    if(index>8191 || (count && index>=count) || !valid(rows,(index+1)*16))return {};
+    const auto index=m.aot_load32(menu+64),rows=m.aot_load32(menu+16);
+    // menu+24 counts only the rows on the visible page (the native layout centres on it),
+    // while menu+64 indexes the whole list. The native draw at 09A838E0 reads rows+index*16
+    // with no count check, so neither may we, or nothing past page one can be pinned.
+    if(index>8191 || !valid(rows,(index+1)*16))return {};
     const auto row=rows+index*16;
     const unsigned type=m.aot_load8(row+10),equipment=m.aot_load16(row+12),id=m.aot_load16(row+14);
     const auto operation=m.aot_load8(menu+37);
@@ -177,6 +181,7 @@ unsigned triggers(bool left,bool right,bool available) {
     return 3;
 }
 void capture_menu(const psprecomp::AllegrexContext &c,const psprecomp::AotFastView &m) {
+    weapon_tree::capture_menu(c,m);
     std::lock_guard lock(mutex);
     if(enabled && lobby(m) && valid(c.gpr[4],112)) {
         menu=c.gpr[4];menu_time=now_ns();
@@ -269,6 +274,7 @@ void capture_craft(const psprecomp::AllegrexContext &c,const psprecomp::AotFastV
     }
 }
 void capture_text(const psprecomp::AllegrexContext &c,const psprecomp::AotFastView &m,unsigned point) {
+    weapon_tree::capture_grid_text(c,m,point);
     std::lock_guard lock(mutex);
     if(!enabled || !current.smithy || !current.selected || now_ns()-frame_time>200000000 || !lobby(m))return;
     const int x=static_cast<std::int16_t>(c.gpr[5]),y=static_cast<std::int16_t>(c.gpr[6]);

@@ -6,6 +6,7 @@
 #include "fu_text_table.hpp"
 #include "install/user_data.hpp"
 #include "mod_overlay.hpp"
+#include "ui/host_text.hpp"
 #include "ui/layer.hpp"
 #include "imgui.h"
 #include <algorithm>
@@ -129,11 +130,14 @@ void draw() {
     if(state.smithy) {
         for(auto marker:state.markers)pin_icon(d,{vp->Pos.x+marker.x*sx,vp->Pos.y+marker.y*sy},5.5f*scale,IM_COL32(255,213,93,255));
         const auto hints=hint_provider ? hint_provider() : ControlHints{};
-        const float pin_width=hint_width(hints.pin,"Pin materials",scale);
-        const float total=pin_width+18*scale+hint_width(hints.unpin,"Remove pin",scale);
+        // FU Controls: translatable (wishlist.hint.*, lang/pt-BR/host.txt).
+        const char *pin_label=ui::host_text::cstr("wishlist.hint.pin");
+        const char *unpin_label=ui::host_text::cstr("wishlist.hint.unpin");
+        const float pin_width=hint_width(hints.pin,pin_label,scale);
+        const float total=pin_width+18*scale+hint_width(hints.unpin,unpin_label,scale);
         const ImVec2 at{vp->Pos.x+vp->Size.x-6*scale-total,vp->Pos.y+vp->Size.y-15*scale};
-        draw_hint(d,hints.pin,"Pin materials",at,scale);
-        draw_hint(d,hints.unpin,"Remove pin",{at.x+pin_width+18*scale,at.y},scale);
+        draw_hint(d,hints.pin,pin_label,at,scale);
+        draw_hint(d,hints.unpin,unpin_label,{at.x+pin_width+18*scale,at.y},scale);
     }
     if(!state.quest && !state.finish_notices){notifications.clear();return;}
     for(auto &notice:state.notices)notifications.push(std::move(notice));

@@ -455,6 +455,9 @@ bool show_mods_page() {
                 if (focus) focus_next_row();
                 if (button_row(ui::host_text::cstr("launcher.mods.ok"))) go(Stage::List);
             }
+            // FU Controls: open at the top, on the mod's name and details. Focusing
+            // the button scrolled the page down to it; this, set after, wins.
+            if (focus) ImGui::SetScrollY(0.0f);
             break;
         }
         case Stage::AlreadyInstalled:

@@ -68,13 +68,25 @@ void draw_save_preview(float x, float y, float width, float height, bool refresh
                 ImGui::PushStyleColor(ImGuiCol_Text,colors::kAccentBright);
                 ImGui::PushStyleColor(ImGuiCol_Border,colors::kAccent);
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,1.0f);
-                ImGui::BeginDisabled(slot.appearance_key.size()!=64);
+                const bool can_load=slot.appearance_key.size()==64;
+                ImGui::BeginDisabled(!can_load);
                 if(ImGui::Button(host_text::cstr("launcher.save.load"),{card-gap*2,text*1.8f})) {
                     // Re-read on click: imports/restores may have changed this card.
                     const auto fresh=read_save_preview(root);
                     if(fresh.status==PreviewStatus::Ready && fresh.slots[i].occupied &&
                        fresh.slots[i].name==slot.name && fresh.slots[i].appearance_key==slot.appearance_key)
                         direct_load::request(i,fresh.slots[i]);
+                }
+                // FU Controls: lets the home's keyboard and pad navigation reach it.
+                if(can_load) load_button_nav(i);
+                // FU Controls: the style hides ImGui's nav cursor (NavCursor alpha 0),
+                // so a keyboard/pad-focused Load looked unfocused. Draw the same ring
+                // big_button draws, so focus is visible.
+                if(can_load && ImGui::IsItemFocused()) {
+                    const ImVec2 a=ImGui::GetItemRectMin(), b=ImGui::GetItemRectMax();
+                    const float pad=text*0.15f;
+                    ImGui::GetForegroundDrawList()->AddRect({a.x-pad,a.y-pad},{b.x+pad,b.y+pad},
+                        colors::kAccentBright,text*0.35f,0,2.0f);
                 }
                 ImGui::EndDisabled();
                 ImGui::PopStyleVar();

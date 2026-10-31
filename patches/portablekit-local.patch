@@ -77,18 +77,212 @@ index 5c32ea3..dfd80b5 100644
  SysMemUserForUser,0xA291F107,sceKernelMaxFreeMemSize
  SysMemUserForUser,0xF919F628,sceKernelTotalFreeMemSize
 diff --git a/host/audio/audio_sink.cpp b/host/audio/audio_sink.cpp
-index 5f14ac7..e9dfc5c 100644
+index 5f14ac7..473d84a 100644
 --- a/host/audio/audio_sink.cpp
 +++ b/host/audio/audio_sink.cpp
-@@ -4,6 +4,7 @@
+@@ -1,17 +1,26 @@
+ #include "../profile.hpp"
+ #include "audio/audio_sink.hpp"
+ 
++#include "install/user_data.hpp"
  #include "settings/settings.hpp"
  
  #include <algorithm>
++#include <array>
 +#include <atomic>
++#include <chrono>
++#include <cstdarg>
  #include <cstdio>
  #include <cstdlib>
  #include <cmath>
-@@ -117,6 +118,7 @@ struct AudioSink::Impl {
+ #include <cstring>
++#include <ctime>
++#include <filesystem>
+ #include <fstream>
+ #include <iostream>
+ #include <mutex>
+ #include <string>
++#include <system_error>
++#include <thread>
+ #include <vector>
+ 
+ #if defined(PORTABLEKIT_HAS_SDL_AUDIO)
+@@ -92,6 +101,174 @@ private:
+ 
+ } // namespace
+ 
++namespace trace_log {
++namespace {
++
++constexpr std::size_t kQueueLines = 512u;          // several seconds of every trace line
++constexpr std::size_t kLineBytes = 192u;
++constexpr std::size_t kMaxPendingBytes = 256u * 1024u;   // held while <data> is not known yet
++constexpr std::uintmax_t kMaxFileBytes = 8u * 1024u * 1024u;  // a bigger file starts over
++constexpr const char *kFileName = "audio-trace.log";
++
++using Line = std::array<char, kLineBytes>;
++
++struct Writer {
++    std::chrono::steady_clock::time_point epoch = std::chrono::steady_clock::now();
++    std::atomic<std::uint64_t> noise_calls{};
++
++    // Producers hold this only to copy one line in; flush() only to copy the
++    // queue out. No I/O happens under it.
++    std::mutex queue_lock;
++    std::array<Line, kQueueLines> queue{};
++    std::size_t queued{};
++    std::uint64_t dropped{};
++
++    // Everything below belongs to whoever is flushing.
++    std::mutex file_lock;
++    std::array<Line, kQueueLines> batch{};
++    std::string pending;
++    std::uint64_t pending_dropped{};
++    std::ofstream file;
++    bool file_failed{};
++};
++
++Writer &writer() {
++    static Writer *value = new Writer;  // never destroyed: the writer thread runs until exit
++    return *value;
++}
++
++// Opens <data>/logs/audio-trace.log, appending, with a header for this session.
++// False while the data folder cannot be resolved yet (tried again next second)
++// or when the file cannot be written (tracing then stays quiet, as before).
++bool open_file(Writer &w) {
++    if (w.file.is_open()) return true;
++    if (w.file_failed) return false;
++    std::filesystem::path dir;
++    try {
++        dir = install::user_data_directory() / "logs";
++    } catch (...) {
++        return false;
++    }
++    std::error_code ec;
++    std::filesystem::create_directories(dir, ec);
++    const std::filesystem::path path = dir / kFileName;
++    const std::uintmax_t size = std::filesystem::file_size(path, ec);
++    const bool restart = !ec && size > kMaxFileBytes;
++    w.file.open(path, std::ios::binary | (restart ? std::ios::trunc : std::ios::app));
++    if (!w.file.is_open()) {
++        w.file_failed = true;
++        return false;
++    }
++    const std::time_t now = std::time(nullptr);
++    std::tm local{};
++#if defined(_WIN32)
++    localtime_s(&local, &now);
++#else
++    localtime_r(&now, &local);
++#endif
++    char stamp[64];
++    std::strftime(stamp, sizeof(stamp), "%Y-%m-%d %H:%M:%S", &local);
++    w.file << "# audio trace session started " << stamp
++           << " (local time); first column is seconds since audio started\n";
++    return true;
++}
++
++} // namespace
++
++bool enabled() {
++    static const bool on = [] {
++        const char *value = portablekit::env("TRACE_AUDIO");
++        return value != nullptr && value[0] != '\0' && std::strcmp(value, "0") != 0;
++    }();
++    return on;
++}
++
++void start() {
++    if (!enabled()) return;
++    static std::once_flag once;
++    std::call_once(once, [] {
++        (void)writer();  // fixes the epoch
++        std::thread([] {
++            for (;;) {
++                std::this_thread::sleep_for(std::chrono::seconds(1));
++                flush();
++            }
++        }).detach();
++    });
++}
++
++void line(const char *format, ...) {
++    if (!enabled()) return;
++    start();
++    Writer &w = writer();
++    Line text{};
++    const double seconds =
++        std::chrono::duration<double>(std::chrono::steady_clock::now() - w.epoch).count();
++    int used = std::snprintf(text.data(), text.size(), "%10.3f ", seconds);
++    if (used < 0 || static_cast<std::size_t>(used) >= text.size()) used = 0;
++    va_list args;
++    va_start(args, format);
++    std::vsnprintf(text.data() + used, text.size() - static_cast<std::size_t>(used), format, args);
++    va_end(args);
++    std::lock_guard<std::mutex> guard(w.queue_lock);
++    if (w.queued == kQueueLines) {
++        ++w.dropped;
++        return;
++    }
++    w.queue[w.queued++] = text;
++}
++
++void count_noise_call() {
++    if (enabled()) writer().noise_calls.fetch_add(1u, std::memory_order_relaxed);
++}
++
++std::uint64_t take_noise_calls() {
++    return enabled() ? writer().noise_calls.exchange(0u, std::memory_order_relaxed) : 0u;
++}
++
++void flush() {
++    if (!enabled()) return;
++    Writer &w = writer();
++    std::lock_guard<std::mutex> file_guard(w.file_lock);
++    std::size_t count = 0;
++    std::uint64_t dropped = 0;
++    {
++        std::lock_guard<std::mutex> guard(w.queue_lock);
++        count = w.queued;
++        std::copy_n(w.queue.begin(), count, w.batch.begin());
++        w.queued = 0u;
++        dropped = w.dropped;
++        w.dropped = 0u;
++    }
++    for (std::size_t i = 0; i < count; ++i) {
++        const Line &text = w.batch[i];
++        const std::size_t length = ::strnlen(text.data(), text.size());
++        if (w.pending.size() + length + 1u > kMaxPendingBytes) {
++            ++w.pending_dropped;
++            continue;
++        }
++        w.pending.append(text.data(), length);
++        w.pending += '\n';
++    }
++    w.pending_dropped += dropped;
++    if (w.pending.empty() && w.pending_dropped == 0u) return;
++    if (!open_file(w)) {
++        if (w.file_failed) {
++            w.pending.clear();
++            w.pending_dropped = 0u;
++        }
++        return;
++    }
++    w.file << w.pending;
++    if (w.pending_dropped != 0u)
++        w.file << "# " << w.pending_dropped << " trace lines dropped (queue full)\n";
++    w.file.flush();
++    w.pending.clear();
++    w.pending_dropped = 0u;
++}
++
++} // namespace trace_log
++
+ struct AudioSink::Impl {
+     std::mutex lock;
+     std::vector<std::int16_t> ring = std::vector<std::int16_t>(kRingFrames * kChannels, 0);
+@@ -117,6 +294,7 @@ struct AudioSink::Impl {
      std::uint64_t seconds{};
  
      float gain{1.0f};
@@ -96,7 +290,29 @@ index 5f14ac7..e9dfc5c 100644
  #if defined(PORTABLEKIT_HAS_SDL_AUDIO)
      SDL_AudioStream *stream{};
  #endif
-@@ -186,6 +188,7 @@ void SDLCALL feed_device(void *user, SDL_AudioStream *stream, int additional, in
+@@ -159,13 +337,15 @@ struct AudioSink::Impl {
+         const double rms = std::sqrt(window_energy / static_cast<double>(window_frames * kChannels));
+         ++seconds;
+         if (dump.active()) dump.flush();
++        // Queued only: this runs on the device callback, so the file is written
++        // by trace_log's own thread.
+         if (trace) {
+-            std::printf("[audio] %llus frames=%llu peak=%d rms=%.1f silent=%llu dropped=%llu\n",
+-                        static_cast<unsigned long long>(seconds),
+-                        static_cast<unsigned long long>(window_frames), window_peak, rms,
+-                        static_cast<unsigned long long>(window_silent),
+-                        static_cast<unsigned long long>(window_dropped));
+-            std::fflush(stdout);
++            trace_log::line("[audio] %llus frames=%llu peak=%d rms=%.1f silent=%llu dropped=%llu noise_calls=%llu",
++                            static_cast<unsigned long long>(seconds),
++                            static_cast<unsigned long long>(window_frames), window_peak, rms,
++                            static_cast<unsigned long long>(window_silent),
++                            static_cast<unsigned long long>(window_dropped),
++                            static_cast<unsigned long long>(trace_log::take_noise_calls()));
+         }
+         window_frames = 0u;
+         window_silent = 0u;
+@@ -186,6 +366,7 @@ void SDLCALL feed_device(void *user, SDL_AudioStream *stream, int additional, in
      std::lock_guard<std::mutex> guard(impl->lock);
      impl->scratch.resize(frames * kChannels);
      impl->retire(frames, impl->scratch.data(), true);
@@ -104,7 +320,17 @@ index 5f14ac7..e9dfc5c 100644
      SDL_PutAudioStreamData(stream, impl->scratch.data(), static_cast<int>(frames * kChannels * 2u));
  }
  #endif
-@@ -234,9 +237,9 @@ void AudioSink::initialize() {
+@@ -204,7 +385,8 @@ void AudioSink::initialize() {
+     Impl &impl = *impl_;
+     if (impl.started) return;
+     impl.started = true;
+-    impl.trace = portablekit::env("TRACE_AUDIO") != nullptr;
++    impl.trace = trace_log::enabled();
++    if (impl.trace) trace_log::start();
+     impl.enabled = portablekit::env("NO_AUDIO") == nullptr;
+     const settings::Settings &player = settings::current();
+     impl.gain = player.mute ? 0.0f : static_cast<float>(player.volume) / 100.0f;
+@@ -234,9 +416,9 @@ void AudioSink::initialize() {
          std::cerr << "Audio: SDL_OpenAudioDeviceStream failed (" << SDL_GetError() << "); running silent\n";
          return;
      }
@@ -116,7 +342,35 @@ index 5f14ac7..e9dfc5c 100644
  #else
      std::cout << "Audio: built without SDL; running silent\n";
  #endif
-@@ -268,12 +271,30 @@ void AudioSink::set_volume(float gain) {
+@@ -252,15 +434,19 @@ void AudioSink::shutdown() {
+         impl.stream = nullptr;
+     }
+ #endif
+-    std::lock_guard<std::mutex> guard(impl.lock);
+-    if (impl.dump.active()) impl.dump.close();
+-    if (impl.trace) {
+-        std::printf("[audio] total frames=%llu silent=%llu dropped=%llu\n",
+-                    static_cast<unsigned long long>(impl.total_frames),
+-                    static_cast<unsigned long long>(impl.total_silent),
+-                    static_cast<unsigned long long>(impl.total_dropped));
+-        std::fflush(stdout);
++    {
++        std::lock_guard<std::mutex> guard(impl.lock);
++        if (impl.dump.active()) impl.dump.close();
++        if (impl.trace) {
++            trace_log::line("[audio] total frames=%llu silent=%llu dropped=%llu",
++                            static_cast<unsigned long long>(impl.total_frames),
++                            static_cast<unsigned long long>(impl.total_silent),
++                            static_cast<unsigned long long>(impl.total_dropped));
++        }
+     }
++    // Outside the device lock, on the thread that is closing: the last lines
++    // reach the file before the process ends.
++    if (impl.trace) trace_log::flush();
+ }
+ 
+ void AudioSink::set_volume(float gain) {
+@@ -268,12 +454,30 @@ void AudioSink::set_volume(float gain) {
      impl.gain = std::clamp(gain, 0.0f, 1.0f);
  #if defined(PORTABLEKIT_HAS_SDL_AUDIO)
      if (impl.stream != nullptr) {
@@ -149,7 +403,7 @@ index 5f14ac7..e9dfc5c 100644
  #if defined(PORTABLEKIT_HAS_SDL_AUDIO)
      return impl_->stream != nullptr;
 diff --git a/host/audio/audio_sink.hpp b/host/audio/audio_sink.hpp
-index 93b83b6..73fb7be 100644
+index 93b83b6..2421b25 100644
 --- a/host/audio/audio_sink.hpp
 +++ b/host/audio/audio_sink.hpp
 @@ -38,6 +38,10 @@ public:
@@ -163,6 +417,75 @@ index 93b83b6..73fb7be 100644
      // Stops and restarts the device, for the in-game menu's pause. What the
      // game queued before the pause stays in the ring and plays on resume.
      void set_paused(bool paused);
+@@ -55,4 +59,33 @@ private:
+     std::unique_ptr<Impl> impl_;
+ };
+ 
++// <prefix>_TRACE_AUDIO: timing and count lines for the mix, the SAS and the
++// noise generator. They go to audio-trace.log in <data>/logs (the folder the
++// in-game FreedomUnbound-*.log uses, so <prefix>_DATA_DIR moves it too), never
++// to stdout or stderr. A producer only copies one short line into a fixed
++// queue; a background thread writes the queue to the file once a second, so
++// the audio thread never waits on the disk. Timings and counts only: no
++// samples, game text or paths.
++namespace trace_log {
++// True when <prefix>_TRACE_AUDIO is set to anything but empty or "0". Read once.
++[[nodiscard]] bool enabled();
++// Starts the clock the lines are stamped with and the writer thread. Called
++// by AudioSink::initialize(); line() starts it too. Safe to call again.
++void start();
++// Queues one printf-style line, without its newline. Does nothing when tracing
++// is off; when the queue is full the line is dropped and counted.
++void line(const char *format, ...)
++#if defined(__GNUC__) || defined(__clang__)
++    __attribute__((format(printf, 1, 2)))
++#endif
++    ;
++// Counts one __sceSasSetNoise call. The count goes into the next per-second
++// [audio] line rather than a line per call.
++void count_noise_call();
++// The noise calls counted since the last call, and resets the count.
++[[nodiscard]] std::uint64_t take_noise_calls();
++// Writes what is queued to the file now. Never from the device callback.
++void flush();
++} // namespace trace_log
++
+ } // namespace portablekit::audio
+diff --git a/host/audio/sas_core.cpp b/host/audio/sas_core.cpp
+index 4f61b3b..1fdf951 100644
+--- a/host/audio/sas_core.cpp
++++ b/host/audio/sas_core.cpp
+@@ -1,5 +1,6 @@
+ #include "../profile.hpp"
+ #include "audio/sas_core.hpp"
++#include "audio/audio_sink.hpp"
+ 
+ #include <algorithm>
+ #include <bit>
+@@ -97,8 +98,7 @@ std::int64_t shifted_rate(std::uint32_t shift) noexcept {
+ }
+ 
+ [[nodiscard]] bool tracing() {
+-    static const bool enabled = portablekit::env("TRACE_AUDIO") != nullptr;
+-    return enabled;
++    return trace_log::enabled();
+ }
+ 
+ // Per-second view of what the SAS is actually doing, so a silent mix can be
+@@ -599,10 +599,9 @@ void SasCore::render(const psprecomp::GuestMemory &memory, std::int16_t *output,
+     for (std::size_t sample = 0; sample < frames * 2u; ++sample)
+         stats.peak = std::max(stats.peak, std::abs(static_cast<std::int32_t>(output[sample])));
+     if (stats.frames >= 44'100u) {
+-        std::printf("[sas] frames=%llu peak=%d voices=%u key_ons=%llu clipped=%llu\n",
+-                    static_cast<unsigned long long>(stats.frames), stats.peak, stats.voices,
+-                    static_cast<unsigned long long>(stats.key_ons), static_cast<unsigned long long>(stats.clipped));
+-        std::fflush(stdout);
++        trace_log::line("[sas] frames=%llu peak=%d voices=%u key_ons=%llu clipped=%llu",
++                        static_cast<unsigned long long>(stats.frames), stats.peak, stats.voices,
++                        static_cast<unsigned long long>(stats.key_ons), static_cast<unsigned long long>(stats.clipped));
+         stats = RenderTrace{};
+     }
+ }
 diff --git a/host/camera/camera_driver.hpp b/host/camera/camera_driver.hpp
 index d873aa2..3e13c23 100644
 --- a/host/camera/camera_driver.hpp
@@ -179,6 +502,199 @@ index d873aa2..3e13c23 100644
  // Once per presented game frame, at the game's flip (never per interpolated
  // present).
  // A game without a driver has nothing to take what the stick and the mouse
+diff --git a/host/camera/camera_input.cpp b/host/camera/camera_input.cpp
+index b30e984..1c50879 100644
+--- a/host/camera/camera_input.cpp
++++ b/host/camera/camera_input.cpp
+@@ -43,6 +43,10 @@ void add_motion(Source source, float yaw_degrees, float pitch_degrees) {
+ void advance(float seconds, float degrees_per_second) {
+     if (!std::isfinite(seconds) || seconds <= 0.0f) return;
+     const float step = std::min(seconds, kLongestStep) * degrees_per_second;
++    pending.seconds += std::min(seconds, kLongestStep);
++    pending.full_scale_degrees += step;
++    pending.stick_yaw_degrees += rates[static_cast<std::size_t>(Source::Stick)].yaw * step;
++    pending.stick_pitch_degrees += rates[static_cast<std::size_t>(Source::Stick)].pitch * step;
+     for (const Rate &rate : rates) {
+         pending.yaw_degrees += rate.yaw * step;
+         pending.pitch_degrees += rate.pitch * step;
+diff --git a/host/camera/camera_input.hpp b/host/camera/camera_input.hpp
+index f48419e..dd8f500 100644
+--- a/host/camera/camera_input.hpp
++++ b/host/camera/camera_input.hpp
+@@ -34,6 +34,8 @@ struct Turn {
+     // degrees happen to round to nothing.
+     bool yaw_held{};
+     bool pitch_held{};
++    // Timing and stick-only contribution from advance(), for game-owned shaping.
++    float seconds{}, stick_yaw_degrees{}, stick_pitch_degrees{}, full_scale_degrees{};
+ };
+ // What has built up since the last take, which it clears.
+ [[nodiscard]] Turn take();
+diff --git a/host/gpu/frame_interpolation.cpp b/host/gpu/frame_interpolation.cpp
+index e927840..cc52ed3 100644
+--- a/host/gpu/frame_interpolation.cpp
++++ b/host/gpu/frame_interpolation.cpp
+@@ -10,6 +10,25 @@ constexpr float kPi = 3.14159265358979f;
+ 
+ float length3(const float *v) noexcept { return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
+ 
++// Instances of one mesh at most this many in a frame are re-paired by
++// position; past it they keep their drawing order (the pairing is quadratic).
++constexpr std::size_t kMaxRepairedInstances = 64u;
++
++// How far `to` is, in eye space, from where the camera's motion `camera`
++// takes `from`: the draw's own motion between the two frames.
++float own_motion(const Matrix &camera, const DrawSummary &from, const DrawSummary &to) noexcept {
++    const std::array<float, 3> before = from.prepared ? from.eye_translation : Matcher::eye_translation_of(from);
++    const std::array<float, 3> after = to.prepared ? to.eye_translation : Matcher::eye_translation_of(to);
++    float distance = 0.0f;
++    for (std::size_t row = 0; row < 3u; ++row) {
++        const float predicted = camera[row] * before[0] + camera[4u + row] * before[1] +
++                                camera[8u + row] * before[2] + camera[12u + row];
++        const float d = after[row] - predicted;
++        distance += d * d;
++    }
++    return std::sqrt(distance);
++}
++
+ } // namespace
+ 
+ DrawSummary summarize(const DrawCall &call) {
+@@ -97,6 +116,7 @@ const Matching &Matcher::match(const std::vector<DrawSummary> &older, const std:
+     while (capacity < eligible * 2u) capacity *= 2u;
+     slots_.assign(capacity, Slot{});
+     next_.assign(newer.size(), -1);
++    older_next_.assign(older.size(), -1);
+     const std::size_t mask = capacity - 1u;
+     const auto slot_for = [&](const Key &key, const DrawSummary &draw) -> Slot & {
+         std::size_t at = static_cast<std::size_t>(draw.prepared ? draw.key_hash : KeyHash{}(key)) & mask;
+@@ -122,7 +142,15 @@ const Matching &Matcher::match(const std::vector<DrawSummary> &older, const std:
+         if (!older[i].eligible) continue;
+         ++out.eligible_older;
+         Slot &slot = slot_for(key_of(older[i]), older[i]);
+-        if (slot.first < 0 || slot.cursor < 0) continue;
++        if (slot.first < 0) continue;
++        const auto index = static_cast<std::int32_t>(i);
++        if (slot.older_first < 0) {
++            slot.older_first = index;
++        } else {
++            older_next_[static_cast<std::size_t>(slot.older_last)] = index;
++        }
++        slot.older_last = index;
++        if (slot.cursor < 0) continue;
+         out.newer_of[i] = slot.cursor;
+         shared_[i] = slot.first != slot.last ? 1u : 0u;
+         slot.cursor = next_[static_cast<std::size_t>(slot.cursor)];
+@@ -165,6 +193,59 @@ const Matching &Matcher::match(const std::vector<DrawSummary> &older, const std:
+                                         out.camera[14] * out.camera[14]);
+     }
+ 
++    // Instances of one mesh were paired in drawing order, which holds while
++    // the game draws them in the same order. A game that sorts or culls its
++    // scenery by distance reorders them as the camera turns, and each would
++    // be blended towards another copy: a house's beams and posts sliding
++    // into each other. With the camera's motion known, the closest pairs are
++    // taken first instead, closest meaning the smallest own motion. The
++    // median camera above is unaffected: most of a scene is unique meshes.
++    if (out.camera_found) {
++        struct Candidate {
++            float distance;
++            std::int32_t older;
++            std::int32_t newer;
++        };
++        std::vector<Candidate> candidates;
++        std::vector<std::int32_t> olders, newers;
++        for (const Slot &slot : slots_) {
++            if (slot.first < 0 || slot.first == slot.last || slot.older_first < 0) continue;
++            olders.clear();
++            newers.clear();
++            for (std::int32_t i = slot.older_first; i >= 0; i = older_next_[static_cast<std::size_t>(i)])
++                olders.push_back(i);
++            for (std::int32_t j = slot.first; j >= 0; j = next_[static_cast<std::size_t>(j)]) newers.push_back(j);
++            if (olders.size() < 2u || olders.size() > kMaxRepairedInstances || newers.size() > kMaxRepairedInstances)
++                continue;
++            candidates.clear();
++            for (const std::int32_t i : olders)
++                for (const std::int32_t j : newers)
++                    candidates.push_back({own_motion(out.camera, older[static_cast<std::size_t>(i)],
++                                                     newer[static_cast<std::size_t>(j)]),
++                                          i, j});
++            std::stable_sort(candidates.begin(), candidates.end(),
++                             [](const Candidate &a, const Candidate &b) { return a.distance < b.distance; });
++            std::vector<std::int32_t> before(olders.size());
++            for (std::size_t k = 0; k < olders.size(); ++k) {
++                before[k] = out.newer_of[static_cast<std::size_t>(olders[k])];
++                out.newer_of[static_cast<std::size_t>(olders[k])] = Matching::kNoPartner;
++            }
++            std::vector<std::uint8_t> taken(newer.size(), 0u);
++            std::size_t pairs = 0u;
++            const std::size_t wanted = std::min(olders.size(), newers.size());
++            for (const Candidate &c : candidates) {
++                if (pairs == wanted) break;
++                std::int32_t &partner = out.newer_of[static_cast<std::size_t>(c.older)];
++                if (partner != Matching::kNoPartner || taken[static_cast<std::size_t>(c.newer)] != 0u) continue;
++                partner = c.newer;
++                taken[static_cast<std::size_t>(c.newer)] = 1u;
++                ++pairs;
++            }
++            for (std::size_t k = 0; k < olders.size(); ++k)
++                if (out.newer_of[static_cast<std::size_t>(olders[k])] != before[k]) ++out.repaired;
++        }
++    }
++
+     // Each pair's own motion: where the camera's motion would have taken the
+     // older draw against where the newer one is, in eye space.
+     if (out.camera_found && thresholds.max_own_motion > 0.0f) {
+@@ -176,16 +257,7 @@ const Matching &Matcher::match(const std::vector<DrawSummary> &older, const std:
+             if (partner < 0) continue;
+             const DrawSummary &from = older[i];
+             const DrawSummary &to = newer[static_cast<std::size_t>(partner)];
+-            const std::array<float, 3> before_column = from.prepared ? from.eye_translation : eye_translation_of(from);
+-            const std::array<float, 3> after_column = to.prepared ? to.eye_translation : eye_translation_of(to);
+-            float distance = 0.0f;
+-            for (std::size_t row = 0; row < 3u; ++row) {
+-                const float predicted = c[row] * before_column[0] + c[4u + row] * before_column[1] +
+-                                        c[8u + row] * before_column[2] + c[12u + row];
+-                const float d = after_column[row] - predicted;
+-                distance += d * d;
+-            }
+-            distance = std::sqrt(distance);
++            const float distance = own_motion(c, from, to);
+             if (distance > thresholds.max_own_motion) {
+                 out.newer_of[i] = Matching::kFollowCamera;
+                 ++out.rejected;
+diff --git a/host/gpu/frame_interpolation.hpp b/host/gpu/frame_interpolation.hpp
+index cddc85a..e451ea8 100644
+--- a/host/gpu/frame_interpolation.hpp
++++ b/host/gpu/frame_interpolation.hpp
+@@ -81,6 +81,9 @@ struct Matching {
+     std::uint32_t eligible_older{};
+     std::uint32_t eligible_newer{};
+     std::uint32_t matched{};
++    // Pairs of a mesh drawn more than once that were re-paired by position
++    // rather than drawing order (see Matcher::match).
++    std::uint32_t repaired{};
+     // How the camera moved between the frames, as the motion of eye space:
+     // for scenery that stands still, newer eye transform = camera * older.
+     // Taken from the matched draw whose turn is the median of a sample, so
+@@ -159,6 +162,9 @@ private:
+         std::int32_t first{-1};
+         std::int32_t last{-1};
+         std::int32_t cursor{-1};
++        // The older frame's draws of this key, chained through older_next_.
++        std::int32_t older_first{-1};
++        std::int32_t older_last{-1};
+     };
+     static Key key_of(const DrawSummary &draw) noexcept;
+ 
+@@ -172,6 +178,7 @@ private:
+ 
+     std::vector<Slot> slots_;
+     std::vector<std::int32_t> next_;  // for each newer draw, the next with its key
++    std::vector<std::int32_t> older_next_;  // for each older draw, the next with its key
+     std::vector<std::uint8_t> shared_;  // for each older draw: its key had several newer draws
+     Matching result_;
+     // The previous pair's camera motion, when that pair was blended.
 diff --git a/host/gpu/ge_state.cpp b/host/gpu/ge_state.cpp
 index 48af218..59692e1 100644
 --- a/host/gpu/ge_state.cpp
@@ -883,7 +1399,7 @@ index 4d4c222..74307fc 100644
      std::filesystem::path directory_;
      TexturePackOptions options_;
 diff --git a/host/gpu/vulkan_renderer.cpp b/host/gpu/vulkan_renderer.cpp
-index 43aa31e..57aa7c0 100644
+index 43aa31e..291b459 100644
 --- a/host/gpu/vulkan_renderer.cpp
 +++ b/host/gpu/vulkan_renderer.cpp
 @@ -1,7 +1,10 @@
@@ -1718,6 +2234,85 @@ index 43aa31e..57aa7c0 100644
          // Only <prefix>_TRACE_3D reads it: a map insert per draw otherwise.
          if (trace3d) ++impl.frame_transformed_targets[call.target.color_address];
          if (watch_camera) {
+@@ -6673,14 +7089,14 @@ void VulkanRenderer::Impl::finish_interpolated_frame(VkImage source, std::uint32
+         return text != nullptr && (std::strcmp(text, "frames") == 0 || std::strcmp(text, "presents") == 0);
+     }();
+     if (trace_frames) {
+-        std::printf("[interp] flip %llu at moment %lld us (%+.1f ms after the one before), %.1f ms after it\n",
++        std::fprintf(stderr, "[interp] flip %llu at moment %lld us (%+.1f ms after the one before), %.1f ms after it\n",
+                     static_cast<unsigned long long>(frames), static_cast<long long>(moment_us),
+                     older_frame.valid ? static_cast<double>(moment_us - older_frame.moment_us) / 1000.0 : 0.0,
+                     static_cast<double>(to_us(std::chrono::steady_clock::now()) - moment_us) / 1000.0);
+     }
+     if (trace_frames || (trace_interpolation && matching.cut != nullptr && matching.eligible_newer != 0u) ||
+         (trace_interpolation && matching.rejected >= 50u)) {
+-        std::printf("[interp] frame %llu: eligible %u/%u matched %u camera %.2f deg %.2f units, rejected %u (%u "
++        std::fprintf(stderr, "[interp] frame %llu: eligible %u/%u matched %u camera %.2f deg %.2f units, rejected %u (%u "
+                     "shared, up to %.0f units, kept up to %.0f)%s%s%s\n",
+                     static_cast<unsigned long long>(frames), matching.eligible_older, matching.eligible_newer,
+                     matching.matched, static_cast<double>(matching.camera_angle_degrees),
+@@ -6688,7 +7104,7 @@ void VulkanRenderer::Impl::finish_interpolated_frame(VkImage source, std::uint32
+                     static_cast<double>(matching.max_rejected_motion), static_cast<double>(matching.max_own_motion),
+                     matching.continued ? " (continued)" : "",
+                     matching.cut != nullptr ? " cut: " : "", matching.cut != nullptr ? matching.cut : "");
+-        std::fflush(stdout);
++        std::fflush(stderr);
+     }
+ }
+ 
+@@ -6834,7 +7250,7 @@ bool VulkanRenderer::Impl::present_between(const pacing::PresentClock::Present &
+         return text != nullptr && std::strcmp(text, "presents") == 0;
+     }();
+     if (trace_presents)
+-        std::printf("[interp] present at moment %+.1f ms, t %.3f, %s, late %.1f ms, skipped %u, %.2f ms\n",
++        std::fprintf(stderr, "[interp] present at moment %+.1f ms, t %.3f, %s, late %.1f ms, skipped %u, %.2f ms\n",
+                     static_cast<double>(present.time_us - newer_frame.moment_us) / 1000.0,
+                     static_cast<double>(present.t),
+                     blended ? "blended" : image == newer_image.color ? "newer" : "older",
+@@ -7114,7 +7530,7 @@ void VulkanRenderer::Impl::report_interpolation() {
+     if (trace_interpolation) {
+         std::string cuts;
+         for (const auto &[reason, count] : stats.cuts) cuts += ", " + reason + " " + std::to_string(count);
+-        std::printf("[interp] %.0f of %.0f fps, %u frames: matched %.1f%% of %.0f draws per frame; camera up to "
++        std::fprintf(stderr, "[interp] %.0f of %.0f fps, %u frames: matched %.1f%% of %.0f draws per frame; camera up to "
+                     "%.2f deg %.2f units, %u continued; cuts %s; presents %u, %u blended (%.2f ms each, %.2f "
+                     "recording %.0f draw calls, gpu %.2f ms), %u plain (%.2f ms each), %u skipped, late up to %.1f "
+                     "ms; delay %.1f ms (code %.1f ms)\n",
+@@ -7132,17 +7548,17 @@ void VulkanRenderer::Impl::report_interpolation() {
+                     plain != 0u ? ms(stats.plain_time) / plain : 0.0, stats.skipped, ms(stats.max_late),
+                     static_cast<double>(present_clock.delay_us()) / 1000.0,
+                     static_cast<double>(present_clock.work_us()) / 1000.0);
+-        std::printf("[interp] plain: %u at the newest frame, %u at the older, %u not blended (cut), %u textures "
++        std::fprintf(stderr, "[interp] plain: %u at the newest frame, %u at the older, %u not blended (cut), %u textures "
+                     "dropped, %u other; not made: %u display busy, %u over budget\n",
+                     stats.plain_newest, stats.plain_oldest, stats.plain_cut, stats.plain_textures,
+                     plain > reasons_known ? plain - reasons_known : 0u, stats.blocked, stats.over_budget);
+-        std::printf("[interp] guards: %u pairs moved too far on their own (%u with the same mesh drawn more than "
++        std::fprintf(stderr, "[interp] guards: %u pairs moved too far on their own (%u with the same mesh drawn more than "
+                     "once), own motion kept up to %.1f units; %.0f draw calls a blend followed the camera only; "
+                     "%.0f texture offsets a blend held (flipbook steps)\n",
+                     stats.rejected, stats.rejected_shared, static_cast<double>(stats.max_own_motion),
+                     stats.blended != 0u ? static_cast<double>(stats.followed) / stats.blended : 0.0,
+                     stats.blended != 0u ? static_cast<double>(stats.flipbook_steps) / stats.blended : 0.0);
+-        std::fflush(stdout);
++        std::fflush(stderr);
+     }
+     const perf::Summary &summary = perf::last_second();
+     if (summary.valid && summary.second != governor_second) {
+@@ -7158,11 +7574,11 @@ void VulkanRenderer::Impl::report_interpolation() {
+         second.blocked = stats.blocked;
+         const double before = governor.rate();
+         if (governor.update(second)) {
+-            std::printf("[interp] frame rate %.0f -> %.0f: %s (speed %.0f%%, spare %.1f ms a frame, %.2f ms a "
++            std::fprintf(stderr, "[interp] frame rate %.0f -> %.0f: %s (speed %.0f%%, spare %.1f ms a frame, %.2f ms a "
+                         "blended present)\n",
+                         before, governor.rate(), governor.reason(), summary.speed * 100.0, summary.pacing_ms,
+                         blend_cost_ms);
+-            std::fflush(stdout);
++            std::fflush(stderr);
+         }
+         perf::set_frame_rate_info(governor.rate(), governor.requested());
+     }
 @@ -7331,6 +7747,7 @@ bool VulkanRenderer::present(std::uint32_t display_address,
          }
      }
@@ -1779,7 +2374,7 @@ index d9e1803..b9f5c12 100644
      std::unique_ptr<Impl> impl_;
  };
 diff --git a/host/hle/hle_media.cpp b/host/hle/hle_media.cpp
-index 3b3727d..09410f2 100644
+index 3b3727d..a94e98a 100644
 --- a/host/hle/hle_media.cpp
 +++ b/host/hle/hle_media.cpp
 @@ -285,6 +285,7 @@ void present_frame(Runtime &rt) {
@@ -1790,6 +2385,17 @@ index 3b3727d..09410f2 100644
      ui::draw_over_game();
      renderer.write_back_frame(rt.memory());
      // A load running fast flips far more often than the display refreshes.
+@@ -982,8 +983,8 @@ void register_audio(HleRegistrar &hle) {
+     // generator at that clock instead of a sample, from its next key on.
+     hle.try_add("sceSasCore", "__sceSasSetNoise", [](Runtime &, AllegrexContext &ctx) {
+         audio::sas_core(arg(ctx, 0)).set_noise(arg(ctx, 1), arg(ctx, 2));
+-        if (portablekit::env("TRACE_AUDIO") != nullptr)
+-            std::cout << "[sas] noise voice " << arg(ctx, 1) << " clock " << arg(ctx, 2) << "\n";
++        // Counted, not printed: the per-second [audio] line reports the total.
++        audio::trace_log::count_noise_call();
+         kernel().finish(ctx, 0u);
+     });
+     hle.add("sceSasCore", "__sceSasSetPitch", [](Runtime &, AllegrexContext &ctx) {
 diff --git a/host/hle/hle_savedata.cpp b/host/hle/hle_savedata.cpp
 index 348b854..2ccde10 100644
 --- a/host/hle/hle_savedata.cpp
@@ -2476,7 +3082,7 @@ index 9360c1a..422bfda 100644
  
  } // namespace portablekit
 diff --git a/host/input/bindings.cpp b/host/input/bindings.cpp
-index e23565d..5b71f12 100644
+index e23565d..cb88562 100644
 --- a/host/input/bindings.cpp
 +++ b/host/input/bindings.cpp
 @@ -54,6 +54,7 @@ constexpr ActionInfo kInfo[kActions] = {
@@ -2487,25 +3093,26 @@ index e23565d..5b71f12 100644
  };
  
  // SceCtrlButtons for the actions that are buttons.
-@@ -91,6 +92,8 @@ Bindings make_default() {
+@@ -91,6 +92,9 @@ Bindings make_default() {
      set(Action::CameraLeft, key(hid::J));
      set(Action::CameraDown, key(hid::K));
      set(Action::CameraRight, key(hid::L));
++    // F6 and F5 (FU Controls): not F7, which Equipment Wishlist claims.
 +    set(Action::ExtraLeft, key(63));
-+    set(Action::ExtraRight, key(64));
++    set(Action::ExtraRight, key(62));
      return b;
  }
  
-@@ -115,6 +118,8 @@ Bindings make_classic() {
+@@ -115,6 +119,8 @@ Bindings make_classic() {
      set(Action::Left, key(hid::Left));
      set(Action::Down, key(hid::Down));
      set(Action::Right, key(hid::Right));
 +    set(Action::ExtraLeft, key(63));
-+    set(Action::ExtraRight, key(64));
++    set(Action::ExtraRight, key(62));
      return b;
  }
  
-@@ -182,6 +187,32 @@ std::string format(const Slots &slots) {
+@@ -182,6 +188,32 @@ std::string format(const Slots &slots) {
      return text;
  }
  
@@ -2538,12 +3145,12 @@ index e23565d..5b71f12 100644
  bool parse(std::string_view text, Slots &slots) {
      Slots parsed{};
      std::size_t count = 0;
-@@ -193,36 +224,177 @@ bool parse(std::string_view text, Slots &slots) {
+@@ -193,36 +225,177 @@ bool parse(std::string_view text, Slots &slots) {
          text = split == std::string_view::npos ? std::string_view{} : text.substr(split + 3u);
          const Binding binding = from_name(part);
          if (binding == kNone || count == kSlots) return false;
 +        // Esc, F3, F9 or F12 saved by an older build is dropped. A claimable key
-+        // (F7, F10) is kept: it is the player's whenever its feature is off.
++        // (F7, F8, F10) is kept: it is the player's whenever its feature is off.
 +        if (always_reserved(key_position(binding))) continue;
          parsed[count++] = binding;
      }
@@ -2730,7 +3337,7 @@ index e23565d..5b71f12 100644
          if (on[i]) pad.buttons |= kButtonBits[i];
      }
      const auto axis = [&](Action negative, Action positive) {
-@@ -232,6 +404,8 @@ PadInput read(const Bindings &bindings, const std::function<bool(Binding)> &held
+@@ -232,6 +405,8 @@ PadInput read(const Bindings &bindings, const std::function<bool(Binding)> &held
      pad.stick_y = axis(Action::StickUp, Action::StickDown);
      pad.camera_x = axis(Action::CameraLeft, Action::CameraRight);
      pad.camera_y = axis(Action::CameraUp, Action::CameraDown);
@@ -2740,7 +3347,7 @@ index e23565d..5b71f12 100644
  }
  
 diff --git a/host/input/bindings.hpp b/host/input/bindings.hpp
-index 5c18176..6616a0c 100644
+index 5c18176..a0f33e3 100644
 --- a/host/input/bindings.hpp
 +++ b/host/input/bindings.hpp
 @@ -4,6 +4,7 @@
@@ -2772,7 +3379,7 @@ index 5c18176..6616a0c 100644
 +// (performance overlay), F9 (mod manager), F12 (screenshot), and any key a
 +// claim below holds right now. Capture refuses them.
 +[[nodiscard]] bool reserved_key(Binding binding);
-+// FU Controls: a key that belongs to an optional feature (F7 wishlist, F10
++// FU Controls: a key that belongs to an optional feature (F7 wishlist, F8 weapon tree, F10
 +// texture toggle) is reserved only while `claimed` returns
 +// true. While it does not, the player's own binding of that key is kept and
 +// works. At most 8 claims; a second claim of a key replaces the first.
@@ -3224,7 +3831,7 @@ index 67c1380..64a3a3b 100644
          // The slot list records where images start, not how much room each one
          // has: a big overlay such as lobby_task runs past the next slot's base,
 diff --git a/host/profile.hpp b/host/profile.hpp
-index 8ffdb28..7488ec0 100644
+index 8ffdb28..860290d 100644
 --- a/host/profile.hpp
 +++ b/host/profile.hpp
 @@ -12,28 +12,42 @@
@@ -3329,7 +3936,7 @@ index 8ffdb28..7488ec0 100644
 +    // Optional F9 panel over the running game. First frame refreshes its data;
 +    // return false to close. The UI owns input capture; guest time keeps running.
 +    bool (*game_mods_frame)(bool first_frame) = nullptr;
-+    // Optional F8 tool over gameplay; uses the same input capture as F9.
++    // Optional F8 tool over gameplay, opened only while the port claims F8 (input::claim_key); uses the same input capture as F9.
 +    bool (*game_tool_frame)(bool first_frame) = nullptr;
 +    // Optional F7 wishlist panel over gameplay; uses the same input capture as F8/F9.
 +    bool (*game_wishlist_frame)(bool first_frame) = nullptr;
@@ -3822,10 +4429,10 @@ index 0000000..92b8b30
 +} // namespace portablekit::savedata::auto_backup
 diff --git a/host/save_data/launcher_import.cpp b/host/save_data/launcher_import.cpp
 new file mode 100644
-index 0000000..ad8ab36
+index 0000000..f68df33
 --- /dev/null
 +++ b/host/save_data/launcher_import.cpp
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,90 @@
 +#include "save_data/launcher_import.hpp"
 +
 +#include "save_data/param_sfo.hpp"
@@ -3901,7 +4508,9 @@ index 0000000..ad8ab36
 +        result.error = check.problem;
 +        return result;
 +    }
-+    result.backup = auto_backup::back_up_if_changed(config, now);
++    // Always a new entry, even when the save matches the newest backup: the
++    // import replaces it, and the player expects to see the backup it made.
++    result.backup = auto_backup::back_up(config, now);
 +    if (!result.backup.ok) {
 +        result.error = result.backup.error;
 +        return result;
@@ -3916,7 +4525,7 @@ index 0000000..ad8ab36
 +} // namespace portablekit::savedata::launcher_import
 diff --git a/host/save_data/launcher_import.hpp b/host/save_data/launcher_import.hpp
 new file mode 100644
-index 0000000..ab70a20
+index 0000000..a1d9e3f
 --- /dev/null
 +++ b/host/save_data/launcher_import.hpp
 @@ -0,0 +1,55 @@
@@ -3929,8 +4538,8 @@ index 0000000..ab70a20
 +// and the save's data file, present and not empty. The save's contents are
 +// never read, decrypted or logged.
 +//
-+// Before anything is copied, the current save gets an automatic backup
-+// (auto_backup.hpp). The copy itself is the in-game Import's import_save()
++// Before anything is copied, the current save gets a new automatic backup
++// (auto_backup.hpp), whether or not it changed since the last one. The copy itself is the in-game Import's import_save()
 +// (save_transfer.hpp), passed in as `Importer`: it copies beside the save
 +// first, moves the replaced save to PSP/SAVEDATA/.backup/<time>/, then moves
 +// the copy into place. Keeping it a parameter lets tests run without a profile.
@@ -3969,8 +4578,8 @@ index 0000000..ab70a20
 +    std::filesystem::path replaced;  // as Imported::replaced
 +};
 +
-+// Backs up the current save if it changed since the newest backup, then
-+// imports. A failed backup stops the import.
++// Backs up the current save into a new SaveBackups entry (skipped only when
++// there is no save), then imports. A failed backup stops the import.
 +Result import_with_backup(const auto_backup::Config &config, const Check &check,
 +                          std::chrono::system_clock::time_point now, const Importer &importer);
 +
@@ -4604,10 +5213,10 @@ index 31110d1..9a4e6af 100644
      s.font = value;
 diff --git a/host/ui/host_text.cpp b/host/ui/host_text.cpp
 new file mode 100644
-index 0000000..8eb5950
+index 0000000..9174240
 --- /dev/null
 +++ b/host/ui/host_text.cpp
-@@ -0,0 +1,986 @@
+@@ -0,0 +1,991 @@
 +#include "ui/host_text.hpp"
 +
 +#include <chrono>
@@ -4792,6 +5401,8 @@ index 0000000..8eb5950
 +    {"launcher.home.used_where_it_is", "(used where it is)"},
 +    {"launcher.lang.en", "English"},
 +    {"launcher.lang.pt_br", "Portugu\xC3\xAAs (Brasil)"},
++    {"launcher.lang.en_help", "Switch the launcher to English."},
++    {"launcher.lang.pt_br_help", "Switch the launcher to Brazilian Portuguese."},
 +    {"launcher.home.none", "None"},
 +    {"launcher.home.data_folder", "Data folder"},
 +    {"launcher.home.disc_image", "Disc image"},
@@ -4989,10 +5600,10 @@ index 0000000..8eb5950
 +    {"launcher.controls.push_the_mouse_forward_to", "Push the mouse forward to look down instead of up."},
 +    {"launcher.controls.invert_mouse_vertically", "Invert mouse vertically"},
 +    {"launcher.controls.l3_r3_and_guide_are", "L3, R3 and Guide are kept for the menu (L3+R3)."},
-+    {"launcher.controls.esc_f3_f10_and_f12", "Esc, F3, F7, F8, F9, F10 and F12 are kept for the menu, performance overlay, wishlist, weapon chart, mod manager, texture toggle and screenshots."},
-+    // FU Controls: the refused-key notice; the F7 and F10 sentences are added only while their feature holds the key.
++    // FU Controls: the refused-key notice; the F7, F8 and F10 sentences are added only while their feature holds the key.
 +    {"launcher.controls.reserved_keys", "Esc, F3, F9 and F12 are kept for the menu, performance overlay, mod manager and screenshots."},
 +    {"launcher.controls.reserved_f7", "F7 is kept for the Equipment Wishlist mod while it is on."},
++    {"launcher.controls.reserved_f8", "F8 is kept for the Weapon Upgrade Tree mod while it is on."},
 +    {"launcher.controls.reserved_f10", "F10 is kept for the texture toggle while a texture pack is installed."},
 +    {"launcher.controls.note", "Note"},
 +    {"launcher.controls.press_a_key_or_a", "Press a key or a mouse button"},
@@ -5247,8 +5858,8 @@ index 0000000..8eb5950
 +    {"launcher.mods.size_value", "{0}, {1} files"},
 +    {"launcher.mods.size", "Size"},
 +    {"launcher.mods.replaces_version", "This replaces the installed copy (v{0})."},
-+    {"launcher.mods.already_installed", "mod is already installed"},
-+    {"launcher.mods.confirm_downgrade", "A newer version is already installed. replace it?"},
++    {"launcher.mods.already_installed", "This mod is already installed."},
++    {"launcher.mods.confirm_downgrade", "A newer version is already installed. Replace it?"},
 +    {"launcher.mods.this_replaces_the_installed_copy", "This replaces the installed copy."},
 +    {"launcher.mods.installing", "Installing {0}"},
 +    {"launcher.mods.progress", "{0} of {1}"},
@@ -5297,6 +5908,9 @@ index 0000000..8eb5950
 +    {"launcher.mods.this_zip_has_no_mod", "This zip has no mod.json, so it's named after the file."},
 +    {"launcher.mods.this_mod_changes_your_save", "This mod changes your save. While it's on, your save is backed up before the game starts with a different set of mods."},
 +    {"launcher.mods.install", "Install"},
++    // FU Controls: Equipment Wishlist control hints at the smithy.
++    {"wishlist.hint.pin", "Pin materials"},
++    {"wishlist.hint.unpin", "Remove pin"},
 +    {"launcher.mods.cancel", "Cancel"},
 +    {"launcher.mods.ok", "OK"},
 +    {"launcher.mods.installed", "Installed"},
@@ -5758,10 +6372,10 @@ index 2d00338..a64cf8c 100644
  } // namespace portablekit::ui::script
 diff --git a/host/ui/launcher_home.cpp b/host/ui/launcher_home.cpp
 new file mode 100644
-index 0000000..4844a01
+index 0000000..e20d634
 --- /dev/null
 +++ b/host/ui/launcher_home.cpp
-@@ -0,0 +1,563 @@
+@@ -0,0 +1,597 @@
 +// The launcher's home screen (GameProfile::launcher_home): what the program
 +// opens on once the game data is set up, before the game boots. Play boots
 +// the game; Settings, Saves and Game data open what the port already has (the
@@ -5881,12 +6495,15 @@ index 0000000..4844a01
 +    d->PopClipRect();
 +}
 +
-+// A 32x22 flag button: navigable (keyboard, pad), tooltip and footer text on
-+// hover or focus, the active language outlined and the other dimmed.
++// A 32x22 flag button: navigable (keyboard, pad), the active language
++// outlined and the other dimmed. On hover or focus a tooltip shows the
++// language `tip` and the `help` line just above the flag, not at the mouse,
++// so it sits by the flag for the keyboard and pad too. The home page draws no
++// footer, so the help goes in the tooltip rather than set_description().
 +// EnableNav: InvisibleButton is NoNav without it, so the keyboard and pad
 +// could never focus or activate a flag. `focus` focuses it this frame
 +// (widgets' focus_next_row is only taken by its own rows, not this button).
-+bool flag_button(const char *id, bool brazil, bool active, const char *tip, bool focus) {
++bool flag_button(const char *id, bool brazil, bool active, const char *tip, const char *help, bool focus) {
 +    const bool pressed = ImGui::InvisibleButton(id, {px(32.0f), px(22.0f)}, ImGuiButtonFlags_EnableNav);
 +    if (focus) ImGui::SetKeyboardFocusHere(-1);
 +    const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
@@ -5898,8 +6515,8 @@ index 0000000..4844a01
 +               active ? colors::kAccentBright : hot ? colors::kText : colors::kPanelEdge, px(3.0f), 0,
 +               active ? px(2.5f) : px(1.0f));
 +    if (hot) {
-+        ImGui::SetTooltip("%s", tip);
-+        Layer::get().set_description(tip);
++        ImGui::SetNextWindowPos({a.x, a.y - px(6.0f)}, ImGuiCond_Always, {0.0f, 1.0f});
++        ImGui::SetTooltip("%s\n%s", tip, help);
 +    }
 +    return pressed;
 +}
@@ -6031,8 +6648,35 @@ index 0000000..4844a01
 +            const float play_width = std::min(font() * 6.5f, hero_width * 0.24f);
 +            const float row_y = display.y*.37f;
 +            const float row_height = std::max(0.0f,display.y-row_y-font()*.9f);
++            // FU Controls: the save cards' Load buttons (load_button_nav in
++            // widgets.hpp). Left and Right move between them, Up goes to Play,
++            // Down to the flags; Tab runs Play, the Loads, then the flags.
++            begin_load_nav();
 +            if (profile.launcher_save_preview)
 +                profile.launcher_save_preview(hero_x,row_y,hero_width,row_height,first);
++            end_load_nav();
++            const unsigned loads = loads_shown();
++            const auto next_load = [&](int from, int step) {
++                for (int s = from + step; s >= 0 && s < 32; s += step)
++                    if ((loads & (1u << s)) != 0u) return s;
++                return -1;
++            };
++            const int first_load = next_load(-1, 1);
++            const int last_load = next_load(32, -1);
++            if (const int at = focused_load(); at >= 0) {
++                const bool tab = ImGui::IsKeyPressed(ImGuiKey_Tab, true);
++                const bool shift = ImGui::GetIO().KeyShift;
++                if (up_pressed() || (tab && shift && next_load(at, -1) < 0)) pending = Action::Play;
++                else if (left_pressed() || (tab && shift)) {
++                    const int s = next_load(at, -1);
++                    if (s >= 0) request_load_focus(s);
++                    else pending = last_sidebar != Action::None ? last_sidebar : !order.empty() ? order.front() : Action::Play;
++                } else if (right_pressed() || (tab && !shift)) {
++                    const int s = next_load(at, 1);
++                    if (s >= 0) request_load_focus(s);
++                    else if (tab) pending_flag = 1;
++                } else if (down_pressed()) pending_flag = 1;
++            }
 +            if (profile.launcher_start_requested && profile.launcher_start_requested()) chosen = Action::Play;
 +            ImGui::SetCursorScreenPos({hero_x,row_y-font()*2.65f});
 +            if ((first && focus == Action::Play) || pending == Action::Play) focus_next_row();
@@ -6045,7 +6689,10 @@ index 0000000..4844a01
 +                else if (tab && shift) pending = order.back();
 +                // Tab and Down go on to the language flags; Tab from the last
 +                // flag wraps to the top of the sidebar.
-+                else if (tab || down_pressed()) pending_flag = 1;
++                else if (tab || down_pressed()) {
++                    if (first_load >= 0) request_load_focus(first_load);
++                    else pending_flag = 1;
++                }
 +            }
 +            if (ImGui::IsItemFocused() || ImGui::IsItemHovered()) layer.set_description(host_text::cstr("launcher.home.start_your_adventure"));
 +            if (profile.launcher_update_button) {
@@ -6077,16 +6724,17 @@ index 0000000..4844a01
 +                        else if (!order.empty()) pending = order.front();
 +                    } else if (tab && shift) {
 +                        if (index == 2) pending_flag = 1;
++                        else if (last_load >= 0) request_load_focus(last_load);
 +                        else pending = Action::Play;
 +                    }
 +                };
 +                // Not on the frame a flag takes the focus: the key that moved it
 +                // there is still down and would move it on at once.
-+                if (flag_button("##lang_en", false, shown == "en", host_text::cstr("launcher.lang.en"), flag_to_focus == 1))
++                if (flag_button("##lang_en", false, shown == "en", host_text::cstr("launcher.lang.en"), host_text::cstr("launcher.lang.en_help"), flag_to_focus == 1))
 +                    choose_language("en");
 +                if (flag_to_focus == 0) flag_nav(1);
 +                ImGui::SameLine(0.0f, px(10.0f));
-+                if (flag_button("##lang_pt_br", true, shown == "pt-BR", host_text::cstr("launcher.lang.pt_br"), flag_to_focus == 2))
++                if (flag_button("##lang_pt_br", true, shown == "pt-BR", host_text::cstr("launcher.lang.pt_br"), host_text::cstr("launcher.lang.pt_br_help"), flag_to_focus == 2))
 +                    choose_language("pt-BR");
 +                if (flag_to_focus == 0) flag_nav(2);
 +            }
@@ -6326,7 +6974,7 @@ index 0000000..4844a01
 +
 +} // namespace portablekit::ui
 diff --git a/host/ui/layer.cpp b/host/ui/layer.cpp
-index cabfd80..ba77376 100644
+index cabfd80..8e6073e 100644
 --- a/host/ui/layer.cpp
 +++ b/host/ui/layer.cpp
 @@ -5,6 +5,7 @@
@@ -6393,7 +7041,7 @@ index cabfd80..ba77376 100644
 +            }
 +        } else if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) {
 +            const input::Binding key = input::key(static_cast<std::uint16_t>(event.key.scancode));
-+            // Esc cancels; F3, F9 and F12 are always refused, and F7 and F10
++            // Esc cancels; F3, F9 and F12 are always refused, and F7, F8 and F10
 +            // while their feature holds them (input::claim_key).
 +            capture_refused_ = event.key.key != SDLK_ESCAPE && input::reserved_key(key);
 +            pressed = event.key.key == SDLK_ESCAPE || capture_refused_ ? input::kNone : key;
@@ -6407,11 +7055,14 @@ index cabfd80..ba77376 100644
              pressed = input::kNone;
          if (pressed) {
              capturing_binding_ = false;
-@@ -231,6 +257,21 @@ bool Layer::handle_event(const SDL_Event &event) {
+@@ -231,6 +257,22 @@ bool Layer::handle_event(const SDL_Event &event) {
          break;
      case SDL_EVENT_KEY_DOWN:
      case SDL_EVENT_KEY_UP:
-+        if (event.key.key == SDLK_F8 && game().game_tool_frame) {
++        // F7 and F8 open their mod's panel only while the mod holds the key;
++        // otherwise they go on to the game like any other key.
++        if (event.key.key == SDLK_F8 && game().game_tool_frame &&
++            input::reserved_key(input::key(static_cast<std::uint16_t>(event.key.scancode)))) {
 +            if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) tool_toggle_ = true;
 +            return true;
 +        }
@@ -6419,8 +7070,6 @@ index cabfd80..ba77376 100644
 +            if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) mods_toggle_ = true;
 +            return true;
 +        }
-+        // F7 opens its mod's panel only while the mod holds the key;
-+        // otherwise it goes on to the game like any other key.
 +        if (event.key.key == SDLK_F7 && game().game_wishlist_frame &&
 +            input::reserved_key(input::key(static_cast<std::uint16_t>(event.key.scancode)))) {
 +            if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) wishlist_toggle_ = true;
@@ -6429,7 +7078,7 @@ index cabfd80..ba77376 100644
          // Android's Back is Esc: it opens and closes the menu.
          if (event.key.key == SDLK_ESCAPE
  #if defined(__ANDROID__)
-@@ -261,7 +302,12 @@ bool Layer::handle_event(const SDL_Event &event) {
+@@ -261,7 +303,12 @@ bool Layer::handle_event(const SDL_Event &event) {
          break;
      }
      case SDL_EVENT_GAMEPAD_AXIS_MOTION:
@@ -6443,7 +7092,7 @@ index cabfd80..ba77376 100644
          break;
      case SDL_EVENT_GAMEPAD_ADDED:
      case SDL_EVENT_GAMEPAD_REMOVED:
-@@ -277,7 +323,10 @@ bool Layer::handle_event(const SDL_Event &event) {
+@@ -277,7 +324,10 @@ bool Layer::handle_event(const SDL_Event &event) {
          // URI, which names no file. Nothing can be read from it.
          if (event.drop.data != nullptr) std::cout << "[ui] ignored a document opened with the game: " << event.drop.data << "\n";
  #else
@@ -6455,7 +7104,7 @@ index cabfd80..ba77376 100644
  #endif
          return true;
      default: break;
-@@ -298,6 +347,10 @@ void Layer::resolve_escape() {
+@@ -298,6 +348,10 @@ void Layer::resolve_escape() {
      else menu_toggle_ = true;
  }
  
@@ -6466,7 +7115,7 @@ index cabfd80..ba77376 100644
  bool Layer::take_menu_toggle() {
      resolve_escape();
      return std::exchange(menu_toggle_, false);
-@@ -323,6 +376,7 @@ void Layer::apply_theme() {
+@@ -323,6 +377,7 @@ void Layer::apply_theme() {
  void Layer::begin_frame() {
      renderer_->begin_ui_frame();
      ImGui_ImplSDL3_NewFrame();
@@ -6475,14 +7124,14 @@ index cabfd80..ba77376 100644
      io.ConfigNavSwapGamepadButtons = !confirm_south();
      if (!gamepad_armed_) gamepad_armed_ = !face_button_held();
 diff --git a/host/ui/layer.hpp b/host/ui/layer.hpp
-index 30ef180..cb641bf 100644
+index 30ef180..f5b517b 100644
 --- a/host/ui/layer.hpp
 +++ b/host/ui/layer.hpp
-@@ -51,14 +51,22 @@ public:
+@@ -51,14 +51,24 @@ public:
  
      // Requests from the player, each reported once.
      bool take_menu_toggle();  // L3+R3; Esc while the game runs
-+    bool take_tool_toggle();  // F8 port-owned tool
++    bool take_tool_toggle();  // F8 Weapon Upgrade Tree panel, while its mod claims F8
 +    bool take_wishlist_toggle(); // F7 Equipment Wishlist panel
 +    bool take_mods_toggle();  // F9, reserved when the profile supplies a panel
      bool take_back();         // Esc while a screen runs
@@ -6497,12 +7146,14 @@ index 30ef180..cb641bf 100644
 +    // gamepad=true (FU Controls): the next gamepad button is kept instead, as
 +    // an SDL_GamepadButton number; keys other than Esc are ignored.
 +    void begin_binding_capture(bool gamepad = false);
-+    // The last capture refused a reserved key or button (Esc/F3/F7/F8/F9/F10/F12, L3/R3/Guide).
++    // The last capture refused a reserved key or button: Esc, F3, F9 and F12
++    // always, F7, F8 and F10 while their feature claims them (input::claim_key),
++    // and L3/R3/Guide on a pad.
 +    [[nodiscard]] bool capture_refused_reserved() const noexcept { return capture_refused_; }
      [[nodiscard]] bool capturing_binding() const noexcept { return capturing_binding_; }
      // Once capture has ended: what was pressed, or input::kNone if cancelled.
      std::optional<std::uint16_t> take_captured_binding();
-@@ -101,8 +109,13 @@ private:
+@@ -101,8 +111,13 @@ private:
      // while a screen opens does not activate its first row.
      bool gamepad_armed_{};
      bool menu_toggle_{};
@@ -6517,7 +7168,7 @@ index 30ef180..cb641bf 100644
      std::optional<std::filesystem::path> dropped_;
  };
 diff --git a/host/ui/menu.cpp b/host/ui/menu.cpp
-index b71f547..2b3a0fc 100644
+index b71f547..edd3c03 100644
 --- a/host/ui/menu.cpp
 +++ b/host/ui/menu.cpp
 @@ -4,21 +4,24 @@
@@ -7225,7 +7876,7 @@ index b71f547..2b3a0fc 100644
              s.invert_mouse_y = !s.invert_mouse_y;
              settings::save();
          }
-@@ -771,8 +746,26 @@ void Menu::controls() {
+@@ -771,8 +746,27 @@ void Menu::controls() {
      Layer &layer = Layer::get();
      if (binding_) {
          if (const auto pressed = layer.take_captured_binding()) {
@@ -7235,9 +7886,10 @@ index b71f547..2b3a0fc 100644
 +            if (layer.capture_refused_reserved()) {
 +                bind_notice_ = binding_pad_ ? host_text::get("launcher.controls.l3_r3_and_guide_are")
 +                                            : host_text::get("launcher.controls.reserved_keys");
-+                // F7 and F10 are named only while their feature holds them.
++                // F7, F8 and F10 are named only while their feature holds them.
 +                static constexpr std::pair<std::uint16_t, const char *> kClaimable[] = {
-+                    {64, "launcher.controls.reserved_f7"}, {67, "launcher.controls.reserved_f10"}};
++                    {64, "launcher.controls.reserved_f7"}, {65, "launcher.controls.reserved_f8"},
++                    {67, "launcher.controls.reserved_f10"}};
 +                if (!binding_pad_)
 +                    for (const auto &[position, id] : kClaimable)
 +                        if (input::reserved_key(input::key(position))) bind_notice_ += " " + host_text::get(id);
@@ -7254,7 +7906,7 @@ index b71f547..2b3a0fc 100644
                  settings::save();
              }
              binding_.reset();
-@@ -780,32 +773,60 @@ void Menu::controls() {
+@@ -780,32 +774,60 @@ void Menu::controls() {
              binding_.reset();
          }
      }
@@ -7324,7 +7976,7 @@ index b71f547..2b3a0fc 100644
          restore("input.trigger", s.trigger, d.trigger);
          restore("input.trigger_profile", s.trigger_profile, d.trigger_profile);
          restore("input.right_stick", s.right_stick, d.right_stick);
-@@ -815,6 +836,7 @@ void Menu::controls() {
+@@ -815,6 +837,7 @@ void Menu::controls() {
          restore("input.aim_speed", s.aim_speed, d.aim_speed);
          restore("input.invert_camera_x", s.invert_camera_x, d.invert_camera_x);
          restore("input.invert_camera_y", s.invert_camera_y, d.invert_camera_y);
@@ -7332,7 +7984,7 @@ index b71f547..2b3a0fc 100644
          restore("input.name_entry", s.name_entry, d.name_entry);
          restore("input.name", s.name, d.name);
          restore("input.mouse", s.mouse, d.mouse);
-@@ -827,57 +849,53 @@ void Menu::controls() {
+@@ -827,57 +850,53 @@ void Menu::controls() {
          restore("input.touch_size", s.touch_size, d.touch_size);
          restore("input.touch_camera_speed", s.touch_camera_speed, d.touch_camera_speed);
          s.bindings = d.bindings;
@@ -7406,7 +8058,7 @@ index b71f547..2b3a0fc 100644
          s.bindings = input::classic_bindings();
          settings::save();
      }
-@@ -902,14 +920,14 @@ std::string format_bytes(std::uint64_t bytes) {
+@@ -902,14 +921,14 @@ std::string format_bytes(std::uint64_t bytes) {
  std::string connection_text(const adhoc::Diagnostics &d) {
      switch (d.state) {
      case adhoc::ServerState::Off:
@@ -7425,7 +8077,7 @@ index b71f547..2b3a0fc 100644
      if (d.online_ms) text += " for " + format_duration(*d.online_ms);
      if (d.rtt_ms) {
          char rtt[32];
-@@ -925,8 +943,8 @@ std::string group_text(const adhoc::Diagnostics &d) {
+@@ -925,8 +944,8 @@ std::string group_text(const adhoc::Diagnostics &d) {
          if (d.rejoin_ms) text += ", rejoining for " + format_duration(*d.rejoin_ms);
          return text;
      }
@@ -7436,7 +8088,7 @@ index b71f547..2b3a0fc 100644
  }
  
  std::string traffic_text(const adhoc::Traffic &t) {
-@@ -960,7 +978,7 @@ std::string group_name(const std::string &group) {
+@@ -960,7 +979,7 @@ std::string group_name(const std::string &group) {
  }
  
  std::string players_text(std::size_t count) {
@@ -7445,7 +8097,7 @@ index b71f547..2b3a0fc 100644
  }
  
  // Hosting and joining a session.
-@@ -968,76 +986,72 @@ void play_together() {
+@@ -968,76 +987,72 @@ void play_together() {
      settings::Settings &s = settings::current();
      static std::string copied;
      static std::string typed_address;
@@ -7541,7 +8193,7 @@ index b71f547..2b3a0fc 100644
          !typed_address.empty()) {
          adhoc_join(typed_address);
          typed_address.clear();
-@@ -1047,8 +1061,8 @@ void play_together() {
+@@ -1047,8 +1062,8 @@ void play_together() {
          if (std::any_of(hosts.begin(), hosts.end(),
                          [&](const adhoc::FoundHost &host) { return host.join_address() == address; }))
              continue;
@@ -7552,7 +8204,7 @@ index b71f547..2b3a0fc 100644
      }
  }
  
-@@ -1056,112 +1070,116 @@ void Menu::network() {
+@@ -1056,112 +1071,116 @@ void Menu::network() {
      settings::Settings &s = settings::current();
      adhoc::Client &client = adhoc::Client::get();
      const adhoc::Diagnostics d = client.diagnostics();
@@ -7760,7 +8412,7 @@ index b71f547..2b3a0fc 100644
          const settings::Settings &defaults = settings::defaults();
          const auto restore = [&](const char *key, auto &value, const auto &fallback) {
              if (settings::overridden_by(key).empty()) value = fallback;
-@@ -1175,7 +1193,9 @@ void Menu::network() {
+@@ -1175,7 +1194,9 @@ void Menu::network() {
  }
  
  void Menu::system() {
@@ -7771,7 +8423,7 @@ index b71f547..2b3a0fc 100644
          if (take_restart_request()) {
              install::request_restart_on_exit();
              quit_ = true;
-@@ -1189,21 +1209,35 @@ void Menu::system() {
+@@ -1189,21 +1210,35 @@ void Menu::system() {
      } catch (const std::exception &e) {
          data_dir = e.what();
      }
@@ -7817,7 +8469,7 @@ index b71f547..2b3a0fc 100644
          s.menu_pause_multiplayer = !s.menu_pause_multiplayer;
          settings::save();
      }
-@@ -1214,8 +1248,7 @@ void Menu::system() {
+@@ -1214,8 +1249,7 @@ void Menu::system() {
      const std::string project = portablekit::game().project_name;
      const std::string log_name = std::string(portablekit::game().app_name) + ".log";
      const std::string previous_log_name = std::string(portablekit::game().app_name) + "-previous.log";
@@ -7827,7 +8479,7 @@ index b71f547..2b3a0fc 100644
          std::fflush(stdout);
          std::fflush(stderr);
          std::error_code ec;
-@@ -1232,33 +1265,36 @@ void Menu::system() {
+@@ -1232,33 +1266,36 @@ void Menu::system() {
          std::filesystem::remove_all(local.parent_path(), ec);
          if (copied)
              saved_log_path() = copied->error.empty() ? copied->where + "/" + install::path_to_utf8(local.filename())
@@ -7878,7 +8530,7 @@ index b71f547..2b3a0fc 100644
      info_row("Interface", std::string("Dear ImGui ") + IMGUI_VERSION);
  }
  
-@@ -1279,26 +1315,25 @@ bool Menu::confirm_dialog() {
+@@ -1279,26 +1316,25 @@ bool Menu::confirm_dialog() {
          }
          confirm_opened_ = true;
          const bool quit = confirm_ == Confirm::Quit;
@@ -7911,7 +8563,7 @@ index b71f547..2b3a0fc 100644
          if (confirm_ == Confirm::None || !keep_open) ImGui::CloseCurrentPopup();
          ImGui::EndPopup();
      }
-@@ -1323,7 +1358,46 @@ void draw_hint(double seconds_left) {
+@@ -1323,7 +1359,46 @@ void draw_hint(double seconds_left) {
      ImGui::Begin("##hint", nullptr,
                   ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize |
                       ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
@@ -7959,7 +8611,7 @@ index b71f547..2b3a0fc 100644
      ImGui::End();
      ImGui::PopStyleVar(2);
  }
-@@ -1400,13 +1474,16 @@ bool attach(gpu::VulkanRenderer &renderer) { return Layer::get().attach(renderer
+@@ -1400,13 +1475,16 @@ bool attach(gpu::VulkanRenderer &renderer) { return Layer::get().attach(renderer
  
  namespace {
  bool (*g_status_overlay_visible)() = nullptr;
@@ -7976,7 +8628,7 @@ index b71f547..2b3a0fc 100644
  
  void draw_over_game() {
      Layer &layer = Layer::get();
-@@ -1415,9 +1492,60 @@ void draw_over_game() {
+@@ -1415,9 +1493,60 @@ void draw_over_game() {
      std::optional<Menu> &menu = menu_over_game_state();
      // The game's keyboard request: drawn over every game frame until done. A
      // keyboard opened from the menu over the running game is the menu's.
@@ -8039,12 +8691,15 @@ index b71f547..2b3a0fc 100644
          layer.end_frame();
          return;
      }
-@@ -1425,12 +1553,32 @@ void draw_over_game() {
+@@ -1425,12 +1554,35 @@ void draw_over_game() {
      const bool overlay = network_overlay();
      const bool touch = !menu && layer.renderer().touch_controls_visible();
      const bool status = g_status_overlay_visible != nullptr && g_status_overlay_visible();
 -    if (hint_left <= 0.0 && !overlay && !menu && !touch && !status) return;
-+    const bool mod_overlay = !menu && profile.game_overlay_visible && profile.game_overlay_draw &&
++    // FU Controls: the mods' gameplay overlays (buff icons, health bars, damage
++    // numbers...) are hidden while the F9 mod manager or the F7/F8 panel is
++    // open, since they would draw over it, and come back when it closes.
++    const bool mod_overlay = !menu && !g_mods_open && profile.game_overlay_visible && profile.game_overlay_draw &&
 +                             profile.game_overlay_visible();
 +    if (hint_left <= 0.0 && toast_left <= 0.0 && !overlay && !menu && !touch && !status && !mod_overlay && !persistent && !g_mods_open) return;
      layer.begin_frame();
@@ -8073,7 +8728,7 @@ index b71f547..2b3a0fc 100644
      if (menu && !menu->frame()) {
          const bool quit = menu->quit() || layer.window_closed();
          menu.reset();
-@@ -1463,10 +1611,20 @@ bool take_quit_request() { return std::exchange(quit_requested(), false); }
+@@ -1463,10 +1615,20 @@ bool take_quit_request() { return std::exchange(quit_requested(), false); }
  
  bool menu_requested() {
      Layer &layer = Layer::get();
@@ -8096,7 +8751,7 @@ index b71f547..2b3a0fc 100644
  }
  
  bool run_menu() {
-@@ -1475,7 +1633,13 @@ bool run_menu() {
+@@ -1475,7 +1637,13 @@ bool run_menu() {
      layer.renderer().set_game_input(false);
      layer.set_interactive(true);
      Menu menu(true);
@@ -8125,7 +8780,7 @@ index 0000000..cef0f47
 +void set_menu_request_filter(bool (*filter)());
 +}
 diff --git a/host/ui/save_screen.cpp b/host/ui/save_screen.cpp
-index 57c2b04..f83b482 100644
+index 57c2b04..ddcc5ce 100644
 --- a/host/ui/save_screen.cpp
 +++ b/host/ui/save_screen.cpp
 @@ -2,11 +2,14 @@
@@ -8362,7 +9017,36 @@ index 57c2b04..f83b482 100644
  void focus_first() {
      State &s = state();
      if (s.focus) {
-@@ -328,10 +413,11 @@ void start_backup(const fs::path &target) {
+@@ -289,8 +374,28 @@ void run_import() {
+     const auto now = std::chrono::system_clock::now();
+     s.backup_dir = sd::backup_directory(savedata_root(), now);
+     s.imported.clear();
++    // The main save gets a new SaveBackups entry before it is replaced, as the
++    // launcher's import does. A failed backup stops the import of that save.
++    const std::string main_save = backup_config().save_folder.filename().string();
++    std::string backup_error;
++    if (auto_backups_enabled()) {
++        for (const Found &found : s.found) {
++            if (!found.check.ok() || found.check.name != main_save) continue;
++            const ab::Result backup = ab::back_up(backup_config(), now);
++            if (!backup.ok) backup_error = backup.error;
++            else if (!backup.skipped) std::cout << "[saves] backed up to " << utf8(backup.folder) << std::endl;
++            break;
++        }
++    }
+     for (const Found &found : s.found) {
+         if (!found.check.ok()) continue;
++        if (!backup_error.empty() && found.check.name == main_save) {
++            Imported item{found.check.name, {}};
++            item.result.error = backup_error;
++            std::cout << "[saves] import " << item.name << ": backup failed: " << backup_error << std::endl;
++            s.imported.push_back(std::move(item));
++            continue;
++        }
+         Imported item{found.check.name, sd::import_save(found.check, sd::memory_stick(), s.backup_dir)};
+         std::cout << "[saves] import " << item.name << " from " << utf8(found.check.folder) << ": "
+                   << (item.result.ok ? "done" : item.result.error)
+@@ -328,10 +433,11 @@ void start_backup(const fs::path &target) {
  bool browse(bool back) {
      State &s = state();
      ImGui::Indent(px(16.0f));
@@ -8378,7 +9062,7 @@ index 57c2b04..f83b482 100644
                colors::kTextDim);
      ImGui::Unindent(px(16.0f));
      const FileBrowser::Result result = s.browser->frame(back);
-@@ -349,7 +435,9 @@ bool browse(bool back) {
+@@ -349,7 +455,9 @@ bool browse(bool back) {
          close();
          return false;
      }
@@ -8389,7 +9073,7 @@ index 57c2b04..f83b482 100644
          review(chosen);
      } else if (stage == Stage::ChooseBackup) {
          start_backup(chosen);
-@@ -374,22 +462,20 @@ void review_screen(bool back) {
+@@ -374,22 +482,20 @@ void review_screen(bool back) {
          ++importable;
          if (f.current.exists) ++replacing;
      }
@@ -8419,7 +9103,7 @@ index 57c2b04..f83b482 100644
                    colors::kTextDim);
      ImGui::Unindent(px(16.0f));
  
-@@ -398,12 +484,12 @@ void review_screen(bool back) {
+@@ -398,12 +504,12 @@ void review_screen(bool back) {
          ImGui::PushID(static_cast<int>(i));
          section((sd::save_label(f.check.name) + " (" + f.check.name + ")").c_str());
          if (i == 0) focus_first();
@@ -8435,7 +9119,7 @@ index 57c2b04..f83b482 100644
              ImGui::Unindent(px(16.0f));
          }
          ImGui::PopID();
-@@ -412,19 +498,23 @@ void review_screen(bool back) {
+@@ -412,19 +518,23 @@ void review_screen(bool back) {
      ImGui::Dummy({0.0f, px(12.0f)});
      if (s.found.empty()) focus_first();
      if (importable > 0) {
@@ -8468,7 +9152,7 @@ index 57c2b04..f83b482 100644
  }
  
  void imported_screen(bool back) {
-@@ -434,7 +524,7 @@ void imported_screen(bool back) {
+@@ -434,7 +544,7 @@ void imported_screen(bool back) {
          return;
      }
      bool any = false, backups = false;
@@ -8477,7 +9161,7 @@ index 57c2b04..f83b482 100644
      for (std::size_t i = 0; i < s.imported.size(); ++i) {
          const Imported &item = s.imported[i];
          any = any || item.result.ok;
-@@ -442,24 +532,24 @@ void imported_screen(bool back) {
+@@ -442,24 +552,24 @@ void imported_screen(bool back) {
          ImGui::PushID(static_cast<int>(i));
          if (i == 0) focus_first();
          info_row(sd::save_label(item.name).c_str(),
@@ -8511,7 +9195,7 @@ index 57c2b04..f83b482 100644
  }
  
  void exported_screen(bool back) {
-@@ -468,31 +558,31 @@ void exported_screen(bool back) {
+@@ -468,31 +578,31 @@ void exported_screen(bool back) {
          close();
          return;
      }
@@ -8554,7 +9238,7 @@ index 57c2b04..f83b482 100644
  }
  
  void backup_screen(bool back) {
-@@ -503,38 +593,38 @@ void backup_screen(bool back) {
+@@ -503,38 +613,38 @@ void backup_screen(bool back) {
      }
      settings::Settings &settings = settings::current();
      const std::vector<std::string> names = sd::saves_to_back_up(sd::memory_stick());
@@ -8606,7 +9290,7 @@ index 57c2b04..f83b482 100644
  }
  
  void confirm_backup_screen(bool back) {
-@@ -543,14 +633,16 @@ void confirm_backup_screen(bool back) {
+@@ -543,14 +653,16 @@ void confirm_backup_screen(bool back) {
          go(Stage::Backup);
          return;
      }
@@ -8628,7 +9312,7 @@ index 57c2b04..f83b482 100644
          finish_backup(true);
  }
  
-@@ -560,21 +652,197 @@ void backed_up_screen(bool back) {
+@@ -560,21 +672,197 @@ void backed_up_screen(bool back) {
          close();
          return;
      }
@@ -8832,7 +9516,7 @@ index 57c2b04..f83b482 100644
  }
  
  } // namespace
-@@ -588,44 +856,111 @@ bool open_folder(const fs::path &folder) {
+@@ -588,44 +876,111 @@ bool open_folder(const fs::path &folder) {
      return false;
  }
  
@@ -8967,7 +9651,7 @@ index 57c2b04..f83b482 100644
  #endif
  }
  
-@@ -644,10 +979,47 @@ bool save_screen(bool back) {
+@@ -644,10 +999,47 @@ bool save_screen(bool back) {
      case Stage::Review: review_screen(back); break;
      case Stage::Imported: imported_screen(back); break;
      case Stage::Exported: exported_screen(back); break;
@@ -10008,7 +10692,7 @@ index 3a9e140..82f6339 100644
 +
  } // namespace portablekit::ui
 diff --git a/host/ui/widgets.cpp b/host/ui/widgets.cpp
-index dfd5014..d6c7922 100644
+index dfd5014..22ed366 100644
 --- a/host/ui/widgets.cpp
 +++ b/host/ui/widgets.cpp
 @@ -1,6 +1,7 @@
@@ -10063,7 +10747,40 @@ index dfd5014..d6c7922 100644
                    px(1.0f));
      ImGui::Dummy({0.0f, px(10.0f)});
      // Two lines for the description, whatever it holds, so the hints stay put.
-@@ -419,7 +420,7 @@ bool toggle_row(const char *label, bool value, const RowOptions &options) {
+@@ -377,6 +378,32 @@ bool tab_bar(const char *const *labels, int count, int &selected) {
+ 
+ void focus_next_row() { focus_next = true; }
+ 
++namespace {
++int g_load_request = -1;
++unsigned g_loads_shown = 0u;
++int g_load_focused = -1;
++} // namespace
++
++void begin_load_nav() {
++    g_loads_shown = 0u;
++    g_load_focused = -1;
++}
++// A request for a slot that was not drawn this frame is dropped.
++void end_load_nav() { g_load_request = -1; }
++void request_load_focus(int slot) { g_load_request = slot; }
++void load_button_nav(int slot) {
++    if (slot < 0 || slot >= 32) return;
++    g_loads_shown |= 1u << slot;
++    if (g_load_request == slot) {
++        g_load_request = -1;
++        ImGui::FocusItem();
++        return;
++    }
++    if (ImGui::IsItemFocused()) g_load_focused = slot;
++}
++unsigned loads_shown() { return g_loads_shown; }
++int focused_load() { return g_load_focused; }
++
+ int choice_row(const char *label, const std::string &value, const RowOptions &options) {
+     const Row r = row(label, options);
+     const float mid_y = (r.min.y + r.max.y) * 0.5f;
+@@ -419,7 +446,7 @@ bool toggle_row(const char *label, bool value, const RowOptions &options) {
      const float knob = height * 0.5f - px(3.0f);
      const ImVec2 knob_center{on ? max.x - height * 0.5f : min.x + height * 0.5f, mid_y};
      draw->AddCircleFilled(knob_center, knob, options.disabled ? colors::kTextDisabled : colors::kText);
@@ -10072,7 +10789,7 @@ index dfd5014..d6c7922 100644
                 on ? colors::kAccentBright : colors::kTextDim);
      return toggled;
  }
-@@ -570,8 +571,8 @@ void section(const char *title) {
+@@ -570,8 +597,8 @@ void section(const char *title) {
      ImGui::Dummy({0.0f, px(2.0f)});
  }
  
@@ -10083,7 +10800,7 @@ index dfd5014..d6c7922 100644
      const ImVec2 min = ImGui::GetCursorScreenPos();
      const ImVec2 max{min.x + width, min.y + height};
      const bool pressed = ImGui::InvisibleButton(label, {width, height}, ImGuiButtonFlags_EnableNav);
-@@ -585,13 +586,33 @@ bool big_button(const char *label, float width, bool primary, bool disabled) {
+@@ -585,13 +612,33 @@ bool big_button(const char *label, float width, bool primary, bool disabled) {
          draw->AddRect(min, max, colors::kTextDisabled, rounding, 0, px(1.5f));
          text = colors::kTextDisabled;
      } else if (primary) {
@@ -10120,7 +10837,7 @@ index dfd5014..d6c7922 100644
          draw->AddRect({min.x - px(3.0f), min.y - px(3.0f)}, {max.x + px(3.0f), max.y + px(3.0f)},
                        colors::kAccentBright, rounding + px(3.0f), 0, px(2.0f));
 diff --git a/host/ui/widgets.hpp b/host/ui/widgets.hpp
-index a573f33..de4f2ed 100644
+index a573f33..65ad0f8 100644
 --- a/host/ui/widgets.hpp
 +++ b/host/ui/widgets.hpp
 @@ -10,22 +10,22 @@
@@ -10161,9 +10878,24 @@ index a573f33..de4f2ed 100644
  } // namespace colors
  
  ImGuiStyle make_style(float scale, float font_size);
-@@ -82,7 +82,8 @@ void section(const char *title);
+@@ -81,8 +81,23 @@ void section(const char *title);
+ // Focuses the next row, e.g. the first row after switching tabs.
  void focus_next_row();
  
++// FU Controls: the launcher home's Load buttons, drawn by the port's save
++// preview (GameProfile::launcher_save_preview) between begin_load_nav() and
++// end_load_nav(). The preview calls load_button_nav(slot) right after each
++// usable Load button: it focuses the button when request_load_focus(slot)
++// asked for it. loads_shown() is then a bit per slot drawn, and
++// focused_load() the focused slot, or -1 (also on the frame it took focus,
++// while the key that moved it is still down).
++void begin_load_nav();
++void end_load_nav();
++void request_load_focus(int slot);
++void load_button_nav(int slot);
++[[nodiscard]] unsigned loads_shown();
++[[nodiscard]] int focused_load();
++
  // A wide button for the setup screens. Returns true when activated.
 -bool big_button(const char *label, float width, bool primary = false, bool disabled = false);
 +bool big_button(const char *label, float width, bool primary = false, bool disabled = false,
@@ -10236,6 +10968,96 @@ index 230fc67..0f00a70 100644
      assign(b, Action::Cross, key(9));  // F, which ○ has
      check(slots_of(b, Action::Cross)[0] == key(44) && slots_of(b, Action::Cross)[1] == key(9),
            "a new key fills the free slot");
+diff --git a/tests/interpolation_tests.cpp b/tests/interpolation_tests.cpp
+index 674f854..0bfdc86 100644
+--- a/tests/interpolation_tests.cpp
++++ b/tests/interpolation_tests.cpp
+@@ -182,11 +182,42 @@ void guards() {
+     mark_eligible(older, kShown);
+     mark_eligible(newer, kShown);
+     const Matching &swapped = matcher.match(older, newer, thresholds);
+-    check(swapped.rejected == 2u && swapped.rejected_shared == 2u &&
+-              swapped.newer_of[40] == Matching::kFollowCamera && swapped.newer_of[41] == Matching::kFollowCamera,
+-          "swapped instances 600 units apart are not blended into each other");
++    check(swapped.rejected == 0u && swapped.repaired == 2u && swapped.newer_of[40] == 41 &&
++              swapped.newer_of[41] == 40,
++          "swapped instances 600 units apart are re-paired by position, each with itself");
+     check(swapped.cut == nullptr, "the rest of the frame still blends");
+ 
++    // Scenery reordered while the camera turns (a house's posts, sorted by
++    // distance): four copies of one mesh 80 units apart, inside the guard's
++    // reach, drawn in reverse order in the newer frame.
++    std::vector<DrawSummary> posts_before = scene(40u, 0.0f), posts_after = scene(40u, 4.0f);
++    for (int k = 0; k < 4; ++k) posts_before.push_back(draw(92u, -120.0f + 80.0f * static_cast<float>(k), 0.0f));
++    for (int k = 3; k >= 0; --k) posts_after.push_back(draw(92u, -120.0f + 80.0f * static_cast<float>(k), 4.0f));
++    mark_eligible(posts_before, kShown);
++    mark_eligible(posts_after, kShown);
++    Matcher posts;
++    const Matching &reordered = posts.match(posts_before, posts_after, thresholds);
++    check(reordered.rejected == 0u && reordered.newer_of[40] == 43 && reordered.newer_of[41] == 42 &&
++              reordered.newer_of[42] == 41 && reordered.newer_of[43] == 40,
++          "reordered posts closer than the guard pair with themselves during a turn");
++    check(near(reordered.max_own_motion, 0.0f, 0.5f), "and none of them moves on its own");
++    check(reordered.repaired == 4u, "the re-pairing is counted");
++
++    // An extra instance in the older frame is the one left without a partner.
++    std::vector<DrawSummary> three = scene(40u), two = scene(40u);
++    three.push_back(draw(93u, 0.0f));
++    three.push_back(draw(93u, 50.0f));
++    three.push_back(draw(93u, 100.0f));
++    two.push_back(draw(93u, 100.0f));
++    two.push_back(draw(93u, 0.0f));
++    mark_eligible(three, kShown);
++    mark_eligible(two, kShown);
++    Matcher extra;
++    const Matching &left_over = extra.match(three, two, thresholds);
++    check(left_over.newer_of[40] == 41 && left_over.newer_of[41] == Matching::kNoPartner &&
++              left_over.newer_of[42] == 40 && left_over.matched == 42u,
++          "with one instance gone, the nearest ones pair and the gone one is unmatched");
++
+     // A character walking 20 units a frame while the camera turns keeps its pair.
+     std::vector<DrawSummary> before = scene(40u, 0.0f), after = scene(40u, 5.0f);
+     DrawSummary walker = draw(91u, 0.0f, 0.0f), walked = draw(91u, 20.0f, 5.0f);
+@@ -203,6 +234,22 @@ void guards() {
+     off.max_own_motion = 0.0f;
+     Matcher unguarded;
+     check(unguarded.match(older, newer, off).rejected == 0u, "with the guard off every pair is kept, as before");
++
++    // Freedom Unite's own guard (host/freedom_unite_profile.cpp): a draw
++    // that jumps 100 units on its own in one game frame is not blended.
++    CutThresholds fu = thresholds;
++    fu.max_own_motion = 60.0f;
++    std::vector<DrawSummary> jump_before = scene(40u), jump_after = scene(40u);
++    jump_before.push_back(draw(94u, 0.0f));
++    jump_after.push_back(draw(94u, 100.0f));
++    mark_eligible(jump_before, kShown);
++    mark_eligible(jump_after, kShown);
++    Matcher fu_matcher;
++    check(fu_matcher.match(jump_before, jump_after, fu).rejected == 1u,
++          "a 100 unit jump is rejected at Freedom Unite's limit of 60");
++    Matcher default_matcher;
++    check(default_matcher.match(jump_before, jump_after, thresholds).rejected == 0u,
++          "and kept at the default of 120");
+ }
+ 
+ void matching() {
+diff --git a/tests/savedata_tests.cpp b/tests/savedata_tests.cpp
+index 509d4ae..4d7858e 100644
+--- a/tests/savedata_tests.cpp
++++ b/tests/savedata_tests.cpp
+@@ -215,8 +215,11 @@ void test_transfer() {
+         fs::copy_file(entry.path(), damaged / entry.path().filename());
+     {
+         std::fstream data(damaged / kDataFile, std::ios::binary | std::ios::in | std::ios::out);
++        // The encrypted data differs every run, so flip the byte instead of writing a fixed value.
++        data.seekg(200);
++        const char byte = static_cast<char>(data.get());
+         data.seekp(200);
+-        data.put('\x7f');
++        data.put(static_cast<char>(byte ^ '\xff'));
+     }
+     check(!check_save_folder(damaged, key).ok(), "a damaged data file is refused");
+     // A damaged PARAM.SFO: the title changed, which its hashes cover.
 diff --git a/tests/vertex_decode_tests.cpp b/tests/vertex_decode_tests.cpp
 new file mode 100644
 index 0000000..83a7d32
